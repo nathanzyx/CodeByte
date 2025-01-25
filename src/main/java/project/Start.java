@@ -1,4 +1,4 @@
-package com.microsoft.azure;
+package project;
 
 import java.util.*;
 

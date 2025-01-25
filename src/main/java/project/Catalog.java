@@ -1,4 +1,4 @@
-package com.microsoft.azure;
+package project;
 
 import java.io.File;  // Import the File class
 import java.io.FileNotFoundException;  // Import this class to handle errors
@@ -22,7 +22,7 @@ class Catalog {
     }
 
     public static void readCatalog() {
-        System.out.println("Working directory: " + System.getProperty("user.dir"));
+//        System.out.println("Working directory: " + System.getProperty("user.dir"));
         readContents("info.csv", list);
 
         // Print out each read element
