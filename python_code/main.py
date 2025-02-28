@@ -1,6 +1,7 @@
 import pandas as pd
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+from datetime import datetime
 db = pd.DataFrame()
 
 class InventorySystem:
@@ -20,6 +21,9 @@ class InventorySystem:
             return
         specifications = simpledialog.askstring("Input", "Enter specifications:")
 
+        # Get time directly before adding product
+        curr_time = datetime.now()
+        
         new_product = {
             'product_id': product_id,
             'category': category,
@@ -27,7 +31,8 @@ class InventorySystem:
             'brand': brand,
             'price': price,
             'quantity': quantity,
-            'specifications': specifications
+            'specifications': specifications,
+            'date': curr_time
         }
         self.inventory.append(new_product)
         messagebox.showinfo("Success", f"Product '{name}' added successfully")
@@ -54,7 +59,7 @@ class InventorySystem:
             messagebox.showinfo("Info", "Inventory is empty")
             return
 
-        inventory_list = "\n".join([f"ID: {product['product_id']}, Name: {product['name']}, Quantity: {product['quantity']}" for product in self.inventory])
+        inventory_list = "\n".join([f"ID: {product['product_id']}, Name: {product['name']}, Quantity: {product['quantity']}, Created: {product['date']}" for product in self.inventory])
         messagebox.showinfo("Current Inventory", inventory_list)
 
 def main():
