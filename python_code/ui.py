@@ -28,9 +28,9 @@ class UI:
 
         # Define column headings
         for col in columns:
-            tree.heading(col, text=col.capitalize())
-
-        tree.pack(expand=True, fill="both")
+            tree.heading(col, text=col.capitalize(), anchor='center')
+            tree.column(col, anchor='center')
+        tree.pack(expand=True, fill="both")   # should center the word in the coloms
 
         # Fetch data from SQLite database
         query = f"SELECT {', '.join(columns)} FROM {self.inventory_system.items_table}"
@@ -65,9 +65,9 @@ class UI:
             
             # Determine if the input should be a single line input or multi-line
             if input_type == 'small_box':
-                entry = tk.Entry(window, width=30)
+                entry = tk.Entry(window, width=75)
             elif input_type == 'large_box':
-                entry = tk.Text(window, width=30, height=5)
+                entry = tk.Text(window, width=50, height=10)
             
             entry.grid(row=i, column=1, padx=10, pady=5, sticky="ew")
             
