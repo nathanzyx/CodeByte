@@ -36,7 +36,6 @@ class DatabaseSystem:
             self.create_products_table()
         
         
-        
     #
     #   This function returns a boolean value for whether a given table exists in the database
     #
@@ -265,8 +264,13 @@ class DatabaseSystem:
     #   You can also just delete the database file for a fresh start
     #
     def clear_database(self):
-        self.cursor.execute(f"DELETE FROM {self.items_table}")
-        self.conn.commit()
+        # Show confirmation dialog
+        if messagebox.askyesno("Confirm", "Are you sure you want to clear the database? This action cannot be undone."):
+            self.cursor.execute(f"DELETE FROM {self.items_table}")
+            self.conn.commit()
+            messagebox.showinfo("Success", "Database cleared successfully.")
+        else:
+            messagebox.showinfo("Cancelled", "Database clear operation cancelled.")
     
     
     

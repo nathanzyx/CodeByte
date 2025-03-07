@@ -285,21 +285,33 @@ class UI:
         def remove_field_popup():
             popup = tk.Toplevel(window)
             popup.title("Remove Field")
-            popup.geometry("200x500")
+            popup.geometry("300x400")
+
+            # Fetch existing fields from the database
+            self.inventory_system.cursor.execute(f"SELECT field_name FROM {self.inventory_system.fields_table}")
+            fields = [row[0] for row in self.inventory_system.cursor.fetchall()]
+
+            # Display the list of fields
+            tk.Label(popup, text="Existing Fields:").pack(pady=10)
+            fields_label = tk.Label(popup, text="\n".join(fields), justify=tk.LEFT)
+            fields_label.pack(pady=5)
 
             # Name of field to be removed
-            tk.Label(popup, text="Field Name:").pack()
+            tk.Label(popup, text="Field Name:").pack(pady=10)
             field_name_entry = tk.Entry(popup)
             field_name_entry.pack()
 
             def submit():
                 field_name = field_name_entry.get()
+                if field_name not in fields:
+                    messagebox.showerror("Error", "Field name does not exist.")
+                    return
                 self.inventory_system.remove_to_fields_table(field_name)
                 popup.destroy()
 
             # Button for executing the field removal
             submit_button = tk.Button(popup, text="Remove Field", command=submit, bg="#af4c4c", fg="white")
-            submit_button.pack(pady=5)
+            submit_button.pack(pady=10)
             
          # Options Menu buttons (Add and Remove Field)
         add_field_button = tk.Button(window, text="Add Field", command=add_field_popup)
@@ -369,4 +381,3 @@ class UI:
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         root.mainloop()
-        
