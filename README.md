@@ -19,7 +19,7 @@ This MVP represents the work completed during Iteration 1. We focused on establi
 
 1.  **Clone the repository:**
     ```bash
-    git clone [Repository Link Here]
+    git clone https://github.com/nathanzyx/CodeByte.git
     ```
 
 ### Usage
