@@ -361,10 +361,10 @@ class UI:
         tk.Button(content_frame, text="Add Product", command=self.inventory_system.add_item,
                 **button_style).pack(pady=10)
         
-        tk.Button(content_frame, text="Remove Product", command=self.inventory_system.remove_item,
+        tk.Button(content_frame, text="Remove Product", command=self.display_remove_item,
                 **button_style).pack(pady=10)
         
-        tk.Button(content_frame, text="Options", command=self.inventory_system.display_options,
+        tk.Button(content_frame, text="Options", command=self.display_options,
                 bg="gray", fg="white", font=("Consolas", 11),
                 width=20, height=2, borderwidth=0).pack(pady=20)
         
