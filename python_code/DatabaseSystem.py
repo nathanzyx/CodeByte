@@ -145,31 +145,6 @@ class DatabaseSystem:
         self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name = ?", (field_name,))
         self.conn.commit()
         print(f"Field '{field_name}' removed successfully!")
-
-
-    
-    
-    #
-    #   This function:
-    #       - Fetches all fields from the fields table
-    #       - Sends those fields to a UI function so the user can fill out the fields and add the item to the inventory       
-    #
-    def add_item(self):
-        # Fetch fields from the database
-        self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table}")
-        fields = self.cursor.fetchall()
-
-        # Build the prod_specs dictionary dynamically
-        prod_specs = {}
-        for field_name, entry_type, validation_type, required in fields:
-            prod_specs[field_name] = {
-                'type': 'text_box_s' if validation_type in ['string', 'int', 'float'] else 'text_box_l',
-                'entry_type': entry_type,
-                'validation': validation_type,
-                'required': bool(required)
-            }
-            
-        self.ui.display_add_item(prod_specs)
     
     
 
@@ -202,7 +177,6 @@ class DatabaseSystem:
         self.conn.commit()
         
         return True
-    
     
     
     
@@ -249,18 +223,3 @@ class DatabaseSystem:
             messagebox.showinfo("Success", "Database cleared successfully.")
         else:
             messagebox.showinfo("Cancelled", "Database clear operation cancelled.")
-    
-    
-    
-    #
-    #   This function:
-    #           - Retreives all column names of the table
-    #           - Passes the column names to the UI display_inventory() function to display
-    #
-    def display_inventory(self):
-        # Fetch column names from the products table
-        self.cursor.execute(f"PRAGMA table_info({self.items_table})")
-        columns = [column[1] for column in self.cursor.fetchall()]
-        
-        # Pass the columns to the UI class function to display the inventory
-        self.ui.display_inventory(columns)
