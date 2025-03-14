@@ -12,7 +12,7 @@ def main():
     database = DatabaseSystem("Electronics Database", "inventory.db")
     
     # Display Menu for database instance
-    database.start_ui()
+    database.ui.display_menu()
 
 
 if __name__ == "__main__":

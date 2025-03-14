@@ -84,25 +84,20 @@ class DatabaseSystem:
     #   The products table is created with each column corresponding to each field from the field table
     #
     def create_products_table(self):
+        # Gets all field names from fields table (to get columns for main table)
         self.cursor.execute(f"SELECT field_name, validation_type FROM {self.fields_table}")
         fields = self.cursor.fetchall()
 
+        # Associate validation type to fields
         column_definitions = []
         for field, field_type in fields:
             sql_type = {"string": "TEXT", "int": "INTEGER", "float": "REAL"}[field_type]
             column_definitions.append(f"{field} {sql_type}")
 
+        # Create table with the new fields
         sql = f"CREATE TABLE IF NOT EXISTS {self.items_table} ({', '.join(column_definitions)})"
         self.cursor.execute(sql)
         self.conn.commit()
-    
-    
-    
-    #
-    #   Calls display function for the Options menu in the UI class
-    #
-    def display_options(self):
-        self.ui.display_options()
         
         
         
@@ -119,6 +114,7 @@ class DatabaseSystem:
             required_int = 1
             
         try:
+            # Insert field and its info to fields table
             self.cursor.execute("INSERT INTO fields VALUES (?, ?, ?, ?)", (field_name, entry_type, validation_type, required_int))
             self.conn.commit()
             
@@ -149,40 +145,6 @@ class DatabaseSystem:
         self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name = ?", (field_name,))
         self.conn.commit()
         print(f"Field '{field_name}' removed successfully!")
-        
-        
-        
-    
-    #
-    #   This function calls the UI function to display the Main Menu
-    #    
-    def start_ui(self):
-        self.ui.display_menu()
-
-
-    
-    
-    #
-    #   This function:
-    #       - Fetches all fields from the fields table
-    #       - Sends those fields to a UI function so the user can fill out the fields and add the item to the inventory       
-    #
-    def add_item(self):
-        # Fetch fields from the database
-        self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table}")
-        fields = self.cursor.fetchall()
-
-        # Build the prod_specs dictionary dynamically
-        prod_specs = {}
-        for field_name, entry_type, validation_type, required in fields:
-            prod_specs[field_name] = {
-                'type': 'text_box_s' if validation_type in ['string', 'int', 'float'] else 'text_box_l',
-                'entry_type': entry_type,
-                'validation': validation_type,
-                'required': bool(required)
-            }
-            
-        self.ui.display_add_item(prod_specs)
     
     
 
@@ -215,16 +177,6 @@ class DatabaseSystem:
         self.conn.commit()
         
         return True
-    
-    
-    
-    
-    #
-    #   This function calls a UI function which prompts the user to remove an item from the inventory
-    #
-    def remove_item(self):
-        self.ui.display_remove_item()  
-    
     
     
     
@@ -271,18 +223,3 @@ class DatabaseSystem:
             messagebox.showinfo("Success", "Database cleared successfully.")
         else:
             messagebox.showinfo("Cancelled", "Database clear operation cancelled.")
-    
-    
-    
-    #
-    #   This function:
-    #           - Retreives all column names of the table
-    #           - Passes the column names to the UI display_inventory() function to display
-    #
-    def display_inventory(self):
-        # Fetch column names from the products table
-        self.cursor.execute(f"PRAGMA table_info({self.items_table})")
-        columns = [column[1] for column in self.cursor.fetchall()]
-        
-        # Pass the columns to the UI class function to display the inventory
-        self.ui.display_inventory(columns)

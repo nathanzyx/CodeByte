@@ -18,7 +18,10 @@ class UI:
     #
     #   This function takes all column names from the 'product' table and displays the data
     #
-    def display_inventory(self, columns):
+    def display_inventory(self):
+        self.inventory_system.cursor.execute(f"PRAGMA table_info({self.inventory_system.items_table})")
+        columns = [column[1] for column in self.inventory_system.cursor.fetchall()]
+        
         # Create a new window for displaying inventory
         inventory_window = tk.Toplevel()
         inventory_window.title("Inventory")
@@ -48,13 +51,28 @@ class UI:
     #           - takes field inputs from field table to prompt the user to input necessary information 
     #           - Upon submitting, calls function from DatabaseSystem class to add the item to the inventory
     #
-    def display_add_item(self, prod_specs):
+    def display_add_item(self):
         window = tk.Toplevel()
         window.title("Add Item")
         window.geometry("600x400")
         
         entries = {}
         message_labels = {}
+        
+        
+        # Fetch fields from the database
+        self.inventory_system.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.inventory_system.fields_table}")
+        fields = self.inventory_system.cursor.fetchall()
+
+        # Build the prod_specs dictionary dynamically
+        prod_specs = {}
+        for field_name, entry_type, validation_type, required in fields:
+            prod_specs[field_name] = {
+                'type': 'text_box_s' if validation_type in ['string', 'int', 'float'] else 'text_box_l',
+                'entry_type': entry_type,
+                'validation': validation_type,
+                'required': bool(required)
+            }
 
 
         for i, (label, props) in enumerate(prod_specs.items()):
@@ -355,16 +373,16 @@ class UI:
                     "borderwidth": 0,
                     "cursor": "hand2"}
         
-        tk.Button(content_frame, text="Display Inventory", command=self.inventory_system.display_inventory, 
+        tk.Button(content_frame, text="Display Inventory", command=self.display_inventory, 
                 **button_style).pack(pady=10)
         
-        tk.Button(content_frame, text="Add Product", command=self.inventory_system.add_item,
+        tk.Button(content_frame, text="Add Product", command=self.display_add_item,
                 **button_style).pack(pady=10)
         
-        tk.Button(content_frame, text="Remove Product", command=self.inventory_system.remove_item,
+        tk.Button(content_frame, text="Remove Product", command=self.display_remove_item,
                 **button_style).pack(pady=10)
         
-        tk.Button(content_frame, text="Options", command=self.inventory_system.display_options,
+        tk.Button(content_frame, text="Options", command=self.display_options,
                 bg="gray", fg="white", font=("Consolas", 11),
                 width=20, height=2, borderwidth=0).pack(pady=20)
         
