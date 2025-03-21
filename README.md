@@ -22,20 +22,32 @@ This MVP represents the work completed during Iteration 1. We focused on establi
     git clone https://github.com/nathanzyx/CodeByte.git
     ```
 
-2. Navigate into the project directory:
+2. **Navigate into the project directory:**
     ```bash
     cd Codebyte
     ```
 
-3. Go to the `python_code` directory:
+3. **Run `make setup` to install the required dependicies:**
     ```bash
-    cd python_code
+    make setup
     ```
 
-4. Run the `main.py` script to start the application:
+4. **Run `make run` to start the application:**
     ```bash
-    python main.py
+    make run
     ```
+
+5. **Run `make clean` to remove unnecessary files:**
+    ```bash
+    make clean
+    ```
+
+### Testing
+
+Running `make test` in the terminal will execute the necessary tests to verify the program's functionality and usability:
+    ```bash
+    make test
+    ```bash
 
 ### Usage
 
