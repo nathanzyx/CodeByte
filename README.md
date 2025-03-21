@@ -27,17 +27,17 @@ This MVP represents the work completed during Iteration 1. We focused on establi
     cd Codebyte
     ```
 
-3. **Run `make setup` in the terminal to install the required dependicies**
+3. **Run `make setup` to install the required dependicies**
     ```bash
     make setup
     ```
 
-4. **run `make run` in the terminal to start the application**
+4. **Run `make run` to start the application**
     ```bash
     make run
     ```
 
-5. **Type `make clean` in the terminal when you're done to remove unnecessary files**
+5. **Run `make clean` to remove unnecessary files**
     ```bash
     make clean
     ```
