@@ -11,3 +11,4 @@ test:
 
 clean:
 	rm -rf *.pyc __pycache__
+	#     powershell -Command "Get-ChildItem -Recurse -Include *.pyc,__pycache__ | Remove-Item -Recurse -Force"
