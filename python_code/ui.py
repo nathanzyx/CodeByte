@@ -3,6 +3,11 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk, Frame
 from datetime import datetime
 import re
+from ui_logic import UILogic
+from inventory_view import InventoryView
+from add_item_view import AddItemView
+from remove_item_view import RemoveItemView
+from manage_fields_view import ManageFieldsView
 
 #   UI Class
 #
@@ -11,40 +16,16 @@ import re
 
 class UI:
     def __init__(self, inventory_system):
-        self.inventory_system = inventory_system # Create instance of inventory
-        
-        
+        self.inventory_system = inventory_system
+        self.logic = UILogic(inventory_system)
+        self.patterns = self.logic.patterns
     
     #
     #   This function takes all column names from the 'product' table and displays the data
     #
     def display_inventory(self):
-        self.inventory_system.cursor.execute(f"PRAGMA table_info({self.inventory_system.items_table})")
-        columns = [column[1] for column in self.inventory_system.cursor.fetchall()]
-        
-        # Create a new window for displaying inventory
-        inventory_window = tk.Toplevel()
-        inventory_window.title("Inventory")
-
-        # Create treeview to display the database records as a table
-        tree = ttk.Treeview(inventory_window, columns=columns, show="headings")
-
-        # Define column headings
-        for col in columns:
-            tree.heading(col, text=col.capitalize(), anchor='center')
-            tree.column(col, anchor='center')
-        tree.pack(expand=True, fill="both")   # should center the word in the coloms
-
-        # Fetch data from SQLite database
-        query = f"SELECT {', '.join(columns)} FROM {self.inventory_system.items_table}"
-        self.inventory_system.cursor.execute(query)
-        records = self.inventory_system.cursor.fetchall()
-
-        # Insert inventory data into the treeview
-        for record in records:
-            tree.insert("", "end", values=record)
-        
-    
+        columns, records = self.logic.get_inventory_data()
+        InventoryView(tk._default_root, columns, records)
     
     #
     #   This function:
@@ -52,112 +33,8 @@ class UI:
     #           - Upon submitting, calls function from DatabaseSystem class to add the item to the inventory
     #
     def display_add_item(self):
-        window = tk.Toplevel()
-        window.title("Add Item")
-        window.geometry("600x400")
-        
-        entries = {}
-        message_labels = {}
-        
-        
-        # Fetch fields from the database
-        self.inventory_system.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.inventory_system.fields_table}")
-        fields = self.inventory_system.cursor.fetchall()
-
-        # Build the prod_specs dictionary dynamically
-        prod_specs = {}
-        for field_name, entry_type, validation_type, required in fields:
-            prod_specs[field_name] = {
-                'type': 'text_box_s' if validation_type in ['string', 'int', 'float'] else 'text_box_l',
-                'entry_type': entry_type,
-                'validation': validation_type,
-                'required': bool(required)
-            }
-
-
-        for i, (label, props) in enumerate(prod_specs.items()):
-            tk.Label(window, text=label).grid(row=i, column=0, padx=10, pady=5, sticky="w")
-            
-            # Extract type of input from entry
-            input_type = props['entry_type']
-            
-            # Determine if the input should be a single line input or multi-line
-            if input_type == 'small_box':
-                entry = tk.Entry(window, width=75)
-            elif input_type == 'large_box':
-                entry = tk.Text(window, width=50, height=10)
-            
-            entry.grid(row=i, column=1, padx=10, pady=5, sticky="ew")
-            
-            message_label = tk.Label(window, text="", fg="red", font=("consolas", 10))
-            message_label.grid(row=i, column=2, padx=10, pady=5, sticky="w")
-            # Store the message label for later use
-            message_labels[label] = message_label
-            
-            # Store entry and validation type
-            entries[label] = (entry, props['validation'], props.get('required', False))
-        
-        def add_item_submit():
-            # Clear all message labels before validation
-            for label in message_labels:
-                message_labels[label].config(text="")
-            
-            # Create REGEX patterns for validation checking
-            patterns = {
-                'string': r'^[a-zA-Z0-9\s]+$',  # Allow a-z, A-Z, 0-9
-                'int': r'^[+-]?\d+$',  # Allow + or -, and 0-9
-                'float': r'^[+-]?\d+\.\d+$'  # Allow + or -, 0-9, and period "."
-            }
-            
-            validation_passed = True
-            
-            for label, (entry, validation_type, is_required) in entries.items():
-                value = entry.get("1.0", "end-1c") if isinstance(entry, tk.Text) else entry.get()
-                    
-                # If field is required and is empty
-                if is_required and not value.strip():  # Strip any leading/trailing spaces
-                    message_labels[label].config(text=f"{label} is required.")
-                    validation_passed = False
-                    continue
-                # If field is NOT required and it is empty
-                if not is_required and not value.strip():
-                    continue
-                    
-                # Validation for input fields
-                if validation_type == 'string':
-                    if not value or not re.match(patterns['string'], value):
-                        message_labels[label].config(text=f"{label} contains invalid characters.")
-                        validation_passed = False
-                        continue
-                elif validation_type == 'int':
-                    if not re.match(patterns['int'], value):
-                        message_labels[label].config(text=f"{label} must be an integer.")
-                        validation_passed = False
-                        continue
-                elif validation_type == 'float':
-                    if not re.match(patterns['float'], value):
-                        message_labels[label].config(text=f"{label} must be a float (contain decimal point).")
-                        validation_passed = False
-                        continue
-            
-            if not validation_passed:
-                return False
-            
-            product_data = {label: entry.get("1.0", "end-1c") if isinstance(entry, tk.Text) else entry.get() for label, (entry, _, _) in entries.items()}
-
-            # Pass the item with its input data to the database adding function
-            self.inventory_system.add_item_to_database(product_data)
-            
-            # Close the form
-            window.destroy()
-            
-            # Show success message
-            messagebox.showinfo("Success", "Item added successfully.")
-            return True
-        
-        submit_button = tk.Button(window, text="Add Item", command=add_item_submit, bg="#4CAF50", fg="white")
-        submit_button.grid(row=len(prod_specs), column=1, padx=10, pady=10)
-
+        AddItemView(tk._default_root, self.logic, self.inventory_system)
+    
     
     
     
@@ -169,51 +46,7 @@ class UI:
     #               - ID of Item to be Removed
     #               - Number of that Item to be Removed (int)
     def display_remove_item(self):
-        window = tk.Toplevel()
-        window.title("Remove Item")
-        window.geometry("600x400")
-
-        # ID to remove
-        tk.Label(window, text="Enter Item ID to Remove:").pack(pady=10)
-        item_id_entry = tk.Entry(window)
-        item_id_entry.pack(pady=5)
-        # count to remove
-        tk.Label(window, text="Enter Number of Items to Remove").pack(pady=10)
-        item_count_entry = tk.Entry(window)
-        item_count_entry.pack(pady=5)
-
-        # Handled item removal
-        def submit():
-            # Define REGEX patterns for validation checking
-            patterns = {
-                'string': r'^[a-zA-Z0-9\s]+$',  # Allow a-z, A-Z, 0-9
-                'int': r'^[+-]?\d+$',  # Allow + or -, and 0-9
-                'float': r'^[+-]?\d+\.\d+$'  # Allow + or -, 0-9, and period "."
-            }
-            # Get values
-            item_id = item_id_entry.get().strip()
-            item_count = item_count_entry.get().strip()
-            
-            
-            if not re.match(patterns['int'], item_count):
-                messagebox.showerror("Error", "Invalid Count.")
-                return
-
-            if not item_id:
-                messagebox.showerror("Error", "Please enter a valid item ID.")
-                return
-
-            try:
-                # Try to remove the item from the database based on the provided item ID
-                self.inventory_system.remove_item_from_database(item_id, item_count)
-                window.destroy()
-                messagebox.showinfo("Success", f"Item with ID {item_id} removed successfully.")
-            except ValueError as e:
-                messagebox.showerror("Error", str(e))
-
-        # Submit button to execute item removal
-        submit_button = tk.Button(window, text="Remove Item", command=submit, bg="#af4c4c", fg="white")
-        submit_button.pack(pady=10)
+        RemoveItemView(tk._default_root, self.inventory_system, self.patterns)
         
         
         
@@ -222,121 +55,7 @@ class UI:
     #       - Remove Field (for removing product field)
     #
     def display_options(self):
-        window = tk.Toplevel()
-        window.title("Manage Fields")
-        window.geometry("400x300")
-        
-        # Function for the popup for adding a new field
-        def add_field_popup():
-            popup = tk.Toplevel(window)
-            popup.title("Add Field")
-            popup.geometry("200x500")
-            popup.title("Add Field")
-
-            # Field Name
-            tk.Label(popup, text="Field Name:").pack()
-            field_name_entry = tk.Entry(popup)
-            field_name_entry.pack()
-            # Size of field entry box
-            tk.Label(popup, text="Entry Box Size:").pack()
-            entry_type = tk.StringVar()
-            entry_type.set("")
-            # Buttons for selection
-            small_box_button = tk.Button(popup, text="Small Box", command=lambda: entry_type.set("small_box"))
-            small_box_button.pack(pady=5)
-            large_box_button = tk.Button(popup, text="Large Box", command=lambda: entry_type.set("large_box"))
-            large_box_button.pack(pady=5)
-            
-            # Validation Type
-            tk.Label(popup, text="Input Type:").pack()
-            validation_type = tk.StringVar()
-            validation_type.set("")
-            # Button selections for validation types
-            string_box_button = tk.Button(popup, text="String", command=lambda: validation_type.set("string"))
-            string_box_button.pack(pady=5)
-            int_box_button = tk.Button(popup, text="Integer", command=lambda: validation_type.set("int"))
-            int_box_button.pack(pady=5)
-            float_box_button = tk.Button(popup, text="Decimal Value", command=lambda: validation_type.set("float"))
-            float_box_button.pack(pady=5)
-            
-            
-            # User indicates whether the field is required
-            tk.Label(popup, text="Required Field:").pack()
-            required = tk.StringVar()
-            required.set("")
-            # Buttons for required selection
-            required_button = tk.Button(popup, text="Required", command=lambda: required.set("1"))
-            required_button.pack(pady=5)
-            not_required_button = tk.Button(popup, text="Not Required", command=lambda: required.set("0"))
-            not_required_button.pack(pady=5)
-            
-
-            def submit():
-                field_name = field_name_entry.get()
-                entry_type_value = entry_type.get().strip()
-                validation_type_value = validation_type.get().strip()
-                required_value = required.get().strip()
-
-                # Ensuring the input fields comply with wanted inputs
-                if field_name.__contains__(" "):
-                    messagebox.showerror("Error", "Name cannot contain spaces.")
-                    return
-                if entry_type_value not in ["small_box", "large_box"]:
-                    messagebox.showerror("Error", "Entry type must be 'small_box', or 'large_box'.")
-                    return
-                if validation_type_value not in ["string", "int", "float"]:
-                    messagebox.showerror("Error", "Validation type must be 'string', 'int', or 'float'.")
-                    return
-                if required_value not in ["0", "1"]:
-                    messagebox.showerror("Error", "Required must be 0 or 1.")
-                    return
-                
-                required_value = int(required_value)
-                self.inventory_system.add_to_fields_table(field_name, entry_type_value, validation_type_value, required_value)
-                popup.destroy()
-
-            # Button for executing the new field addition
-            submit_button = tk.Button(popup, text="Add Field", command=submit, bg="#4CAF50", fg="white")
-            submit_button.pack()
-
-        # This function is for field removal
-        def remove_field_popup():
-            popup = tk.Toplevel(window)
-            popup.title("Remove Field")
-            popup.geometry("300x400")
-
-            # Fetch existing fields from the database
-            self.inventory_system.cursor.execute(f"SELECT field_name FROM {self.inventory_system.fields_table}")
-            fields = [row[0] for row in self.inventory_system.cursor.fetchall()]
-
-            # Display the list of fields
-            tk.Label(popup, text="Existing Fields:").pack(pady=10)
-            fields_label = tk.Label(popup, text="\n".join(fields), justify=tk.LEFT)
-            fields_label.pack(pady=5)
-
-            # Name of field to be removed
-            tk.Label(popup, text="Field Name:").pack(pady=10)
-            field_name_entry = tk.Entry(popup)
-            field_name_entry.pack()
-
-            def submit():
-                field_name = field_name_entry.get()
-                if field_name not in fields:
-                    messagebox.showerror("Error", "Field name does not exist.")
-                    return
-                self.inventory_system.remove_to_fields_table(field_name)
-                popup.destroy()
-
-            # Button for executing the field removal
-            submit_button = tk.Button(popup, text="Remove Field", command=submit, bg="#af4c4c", fg="white")
-            submit_button.pack(pady=10)
-            
-         # Options Menu buttons (Add and Remove Field)
-        add_field_button = tk.Button(window, text="Add Field", command=add_field_popup)
-        add_field_button.pack(pady=10)
-
-        remove_field_button = tk.Button(window, text="Remove Field", command=remove_field_popup)
-        remove_field_button.pack(pady=10)       
+        ManageFieldsView(tk._default_root, self.logic, self.inventory_system)
         
         
         
@@ -349,53 +68,176 @@ class UI:
     def display_menu(self):
         root = tk.Tk()
         root.title(self.inventory_system.name)
-        root.geometry("700x700")
-        root.configure(bg="#f0f0f0")  # Set background color
+        root.geometry("1200x800")
+        root.configure(bg="#f0f2f5")  # Modern light background
+
+        # Define color scheme
+        colors = {
+            'bg': '#f0f2f5',
+            'sidebar': '#ffffff',
+            'primary': '#363062',
+            'secondary': '#424242',
+            'accent': '#2196f3',
+            'danger': '#f44336',
+            'text': '#2c3e50',
+            'subtext': '#666666'
+        }
+
+        # Create main container with sidebar and content area
+        main_container = Frame(root, bg=colors['bg'])
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        # Sidebar
+        sidebar = Frame(main_container, bg=colors['sidebar'], width=280)
+        sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=0)
+        sidebar.pack_propagate(False)  # Maintain width
+
+        # Logo and title area
+        logo_frame = Frame(sidebar, bg=colors['primary'], height=130)
+        logo_frame.pack(fill=tk.X)
         
-        # Create title frame
-        title_frame = Frame(root, bg="#3498db", pady=15)
-        title_frame.pack(fill=tk.X)
+        logo_label = tk.Label(logo_frame, text="💻", font=("Arial", 28), bg=colors['primary'], fg="white")
+        logo_label.pack(pady=(20, 0))
         
-        title_label = tk.Label(title_frame, text=self.inventory_system.name, 
-                            font=("Consolas", 16, "bold"), bg="#3498db", fg="white")
-        title_label.pack()
+        # App name - take first word from inventory system name
+        app_name = tk.Label(logo_frame, text=self.inventory_system.name.split()[0], 
+                          font=("Segoe UI", 16, "bold"), bg=colors['primary'], fg="white")
+        app_name.pack(pady=(0, 5))
         
-        # Create main content frame
-        content_frame = Frame(root, bg="#f0f0f0", pady=20)
-        content_frame.pack(fill=tk.BOTH, expand=True)
+        # Tagline
+        tagline = tk.Label(logo_frame, text="Inventory System", font=("Segoe UI", 10), 
+                         bg=colors['primary'], fg="#e0e0e0")
+        tagline.pack(pady=(0, 10))
+
+        # Navigation menu
+        nav_frame = Frame(sidebar, bg=colors['sidebar'])
+        nav_frame.pack(fill=tk.BOTH, expand=True, padx=16)
+
+        # Button style
+        nav_btn_style = {
+            "font": ("Segoe UI", 11),
+            "width": 28,
+            "height": 2,
+            "anchor": "w",
+            "bd": 0,
+            "cursor": "hand2",
+            "fg": colors['text'],
+            "bg": colors['sidebar']
+        }
+
+        def create_nav_button(text, icon, command):
+            btn = tk.Button(nav_frame, text=f" {icon}  {text}", command=command, **nav_btn_style)
+            btn.pack(pady=4)
+            
+            def on_hover(e):
+                e.widget['bg'] = colors['bg']
+            def on_leave(e):
+                e.widget['bg'] = colors['sidebar']
+                
+            btn.bind("<Enter>", on_hover)
+            btn.bind("<Leave>", on_leave)
+            return btn
+
+        # Navigation buttons
+        create_nav_button("View Inventory", "📊", self.display_inventory)
+        create_nav_button("Add Product", "➕", self.display_add_item)
+        create_nav_button("Remove Product", "➖", self.display_remove_item)
         
-        # Create buttons with better styling
-        button_style = {"font": ("Consolas", 11),
-                    "bg": "#2980b9",
-                    "fg": "white",
-                    "width": 20,
-                    "height": 2,
-                    "borderwidth": 0,
-                    "cursor": "hand2"}
+        # Separator
+        tk.Frame(nav_frame, height=2, bg=colors['bg']).pack(fill=tk.X, pady=20)
         
-        tk.Button(content_frame, text="Display Inventory", command=self.display_inventory, 
-                **button_style).pack(pady=10)
+        create_nav_button("Manage Fields", "⚙️", self.display_options)
+        create_nav_button("Clear Database", "🗑️", self.inventory_system.clear_database)
         
-        tk.Button(content_frame, text="Add Product", command=self.display_add_item,
-                **button_style).pack(pady=10)
+        # Exit button at bottom of sidebar
+        exit_btn = tk.Button(sidebar, text=" 🚪  Exit Application",
+                            command=root.quit,
+                            font=("Segoe UI", 11),
+                            fg="white",
+                            bg=colors['danger'],
+                            bd=0,
+                            cursor="hand2",
+                            width=28,
+                            height=2)
+        exit_btn.pack(side=tk.BOTTOM, pady=20)
+
+        # Add watermark below the exit button
+        watermark = tk.Label(sidebar, 
+                           text="Made by CodeByte",
+                           font=("Segoe UI", 8, "italic"),
+                           fg="#a0a0a0",
+                           bg=colors['sidebar'])
+        watermark.pack(side=tk.BOTTOM, pady=(0, 5))
+
+        # Main content area
+        content = Frame(main_container, bg=colors['bg'])
+        content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
+
+        # Welcome card
+        welcome_card = Frame(content, bg="white", padx=30, pady=30)
+        welcome_card.pack(fill=tk.X, pady=(0, 20))
         
-        tk.Button(content_frame, text="Remove Product", command=self.display_remove_item,
-                **button_style).pack(pady=10)
+        tk.Label(welcome_card,
+                text="Welcome to Your Inventory Dashboard",
+                font=("Segoe UI", 20, "bold"),
+                bg="white",
+                fg=colors['text']).pack(anchor="w")
+                
+        tk.Label(welcome_card,
+                text="Manage your inventory efficiently with our modern interface",
+                font=("Segoe UI", 12),
+                bg="white",
+                fg=colors['subtext']).pack(anchor="w", pady=(10, 0))
+
+        # Stats cards container
+        stats_container = Frame(content, bg=colors['bg'])
+        stats_container.pack(fill=tk.X, pady=20)
         
-        tk.Button(content_frame, text="Options", command=self.display_options,
-                bg="gray", fg="white", font=("Consolas", 11),
-                width=20, height=2, borderwidth=0).pack(pady=20)
+        # Create three stat cards
+        def create_stat_card(title, value, icon):
+            card = Frame(stats_container, bg="white", padx=20, pady=15)
+            card.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+            
+            tk.Label(card, text=icon, font=("Segoe UI", 24),
+                    bg="white").pack(anchor="w")
+            tk.Label(card, text=title, font=("Segoe UI", 11),
+                    bg="white", fg=colors['subtext']).pack(anchor="w")
+            tk.Label(card, text=value, font=("Segoe UI", 20, "bold"),
+                    bg="white", fg=colors['text']).pack(anchor="w")
+
+        # Add sample stats (you can replace these with real data)
+        create_stat_card("Total Products", "--", "📦")
+        create_stat_card("Low Stock Items", "--", "⚠️")
+        create_stat_card("Total Value", "$--", "💰")
+
+        # Footer
+        footer = Frame(content, bg=colors['bg'])
+        footer.pack(side=tk.BOTTOM, fill=tk.X)
         
-        tk.Button(content_frame, text="Clear Database", command=self.inventory_system.clear_database,
-                bg="black", fg="white", font=("Consolas", 11),
-                width=20, height=2, borderwidth=0).pack(pady=20)
-        
-        tk.Button(content_frame, text="Exit", command=root.quit,
-                bg="#e74c3c", fg="white", font=("Consolas", 11),
-                width=20, height=2, borderwidth=0).pack(pady=20)
-        
-        # Add status bar
-        status_bar = tk.Label(root, text="Inventory Online", bd=1, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        current_time = datetime.now().strftime("%d %b %Y")
+        version_label = tk.Label(footer,
+                            text=f"v1.0 • {current_time}",
+                            font=("Segoe UI", 9),
+                            bg=colors['bg'],
+                            fg=colors['subtext'])
+        version_label.pack(side=tk.RIGHT)
 
         root.mainloop()
+
+    def validate_input(self, value, validation_type, is_required, label, message_labels):
+        if is_required and not value.strip():
+            message_labels[label].config(text=f"{label} is required.")
+            return False
+        if not is_required and not value.strip():
+            return True
+        if validation_type == 'string' and not re.match(self.patterns['string'], value):
+            message_labels[label].config(text=f"{label} contains invalid characters.")
+            return False
+        if validation_type == 'int' and not re.match(self.patterns['int'], value):
+            message_labels[label].config(text=f"{label} must be an integer.")
+            return False
+        if validation_type == 'float' and not re.match(self.patterns['float'], value):
+            message_labels[label].config(text=f"{label} must be a float (contain decimal point).")
+            return False
+        return True
+

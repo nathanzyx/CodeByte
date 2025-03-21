@@ -17,7 +17,7 @@ class DatabaseSystem:
         self.name = name
         
         # self.inventory = []
-        self.ui = UI(self)
+        self.ui = None  # Initialize UI later
         
         # Define SQLite database file name and table names for reference
         self.db = file
@@ -35,6 +35,8 @@ class DatabaseSystem:
             self.create_fields_table()
             self.create_products_table()
         
+    def set_ui(self, ui):
+        self.ui = ui
         
     #
     #   This function returns a boolean value for whether a given table exists in the database
