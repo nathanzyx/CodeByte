@@ -4,8 +4,10 @@ from tkinter import messagebox, simpledialog, ttk, Frame
 from datetime import datetime
 import re
 from ui.ui_logic import UILogic
-from ui.embed_inventory_table import EmbedInventoryTable
-from ui.search_view import SearchView
+# from ui.embed_inventory_table import EmbedInventoryTable
+# from ui.embed_inventory_table import EmbedInventoryTable
+# from ui.embed_inventory_table_edit import EmbedInventoryTableEdit
+from ui.search_view_edit import SearchViewEdit
 from ui.login_view import LoginView
 from ui.display_default import DisplayDefault
 from ui.add_item_view import AddItemView
@@ -35,14 +37,19 @@ class UI:
     #
     #   This function takes all column names from the 'product' table and displays the data
     #
+    # def display_inventory(self):
+    #     # Always allow viewing inventory (no login required)
+    #     DisplayDefault(tk._default_root, self.inventory_system.get_all_items)
+    
     def display_inventory(self):
-        # Always allow viewing inventory (no login required)
-        DisplayDefault(tk._default_root, self.inventory_system.get_all_items)
-        
-    def display_search(self):
         if not self.is_logged_in():
             return
-        SearchView(tk._default_root, self.logic, self.inventory_system)
+        SearchViewEdit(tk._default_root, self.logic, self.inventory_system)
+        
+    # def display_search(self):
+    #     if not self.is_logged_in():
+    #         return
+    #     SearchView(tk._default_root, self.logic, self.inventory_system)
     
     #
     #   This function:
@@ -75,7 +82,7 @@ class UI:
         ManageFieldsView(tk._default_root, self.logic, self.inventory_system)
         
     def display_login(self):
-        if not self.inventory_system.logged_in():
+        if not self.inventory_system.logged_in:
             LoginView(tk._default_root, self.logic, self.inventory_system)
         
     #   MENU
@@ -160,8 +167,8 @@ class UI:
             return btn
 
         # Navigation buttons
-        create_nav_button("View Inventory", "📊", self.display_inventory)
-        create_nav_button("Search Inventory", "🔎", self.display_search)
+        create_nav_button("Inventory", "📊", self.display_inventory)
+        # create_nav_button("Search Inventory", "🔎", self.display_search)
         create_nav_button("Add Product", "➕", self.display_add_item)
         create_nav_button("Remove Product", "➖", self.display_remove_item)
         

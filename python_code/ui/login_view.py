@@ -47,7 +47,7 @@ class LoginView:
         self.password_entry.pack(pady=(0, 20))
 
         # Login button
-        login_button = tk.Button(main_container, text="Login", font=("Segoe UI", 12), bg=colors['primary'], fg="white", command=self.authenticate_user)
+        login_button = tk.Button(main_container, text="Login", relief="flat", font=("Segoe UI", 12), bg=colors['primary'], fg="white", command=self.authenticate_user)
         login_button.pack(pady=(10, 0))
 
     def authenticate_user(self):

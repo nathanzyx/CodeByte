@@ -256,6 +256,23 @@ class DatabaseSystem:
         # Return the results as a DataFrame, with the search result items, and the extracted column names
         return pd.DataFrame(search_results, columns=[desc[0] for desc in self.cursor.description])
         
+    def update_item(self, item_id, new_data):
+        # Create the SET query dynamically (e.g. "name=?, price=?, ...")
+        set_clause = ", ".join([f"{column}=?" for column in new_data])
+        # extract the new item data from the parameter
+        values = list(new_data.values())
+        # add the values
+        values.append(item_id)
+        
+        try:
+            # Execute update statement
+            sql = f"UPDATE {self.items_table} SET {set_clause} WHERE id=?"
+            self.cursor.execute(sql, values)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error updating item: {e}")
+            return False
           
     #
     #   This function is temporary for testing, it simply clears the 'products' table of the database
