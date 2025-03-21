@@ -12,7 +12,7 @@ def main():
         report_path = current_dir / "report.html"
         
         # Run pytest with HTML report generation
-        result = pytest.main(["-v", f"--html={str(report_path)}"])
+        result = pytest.main(["-v", f"--html={str(report_path)}", str(current_dir)])
         
         # Give pytest time to finish writing the report
         time.sleep(1)

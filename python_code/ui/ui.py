@@ -36,8 +36,7 @@ class UI:
     #   This function takes all column names from the 'product' table and displays the data
     #
     def display_inventory(self):
-        if not self.is_logged_in():
-            return
+        # Always allow viewing inventory (no login required)
         DisplayDefault(tk._default_root, self.inventory_system.get_all_items)
         
     def display_search(self):
@@ -54,12 +53,7 @@ class UI:
         if not self.is_logged_in():
             return
         AddItemView(tk._default_root, self.logic, self.inventory_system)
-    
-    
-    
-    
-    
-    
+        # self.inventory_system.add_log_entry("Item added", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     
     #   REMOVE ITEM UI
     #       User Enters:
@@ -69,8 +63,7 @@ class UI:
         if not self.is_logged_in():
             return
         RemoveItemView(tk._default_root, self.inventory_system, self.patterns)
-        
-        
+        # self.inventory_system.add_log_entry("Item removed", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
     #   OPTIONS MENU    
     #       - Add Field (for adding product field)
@@ -81,12 +74,9 @@ class UI:
             return
         ManageFieldsView(tk._default_root, self.logic, self.inventory_system)
         
-        
     def display_login(self):
-        if not self.inventory_system.logged_in:
+        if not self.inventory_system.logged_in():
             LoginView(tk._default_root, self.logic, self.inventory_system)
-        
-        
         
     #   MENU
     #       - Display Inventory (see all products in database table)
