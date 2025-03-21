@@ -1,21 +1,25 @@
 import tkinter as tk
 from tkinter import ttk, Frame
 
-class InventoryView:
-    def __init__(self, parent, columns, records):
+
+#
+# Display Default Class is initialized with a function that must return a dataframe
+# This class can be is used for displaying any data as long as the given function returns a dataframe
+#
+class DisplayDefault:
+    def __init__(self, parent, function):
         self.window = tk.Toplevel(parent)
         self.window.title("Inventory")
         self.window.geometry("900x600")
-        self.columns = columns
-        self.records = records
+        self.df = function()
+        self.columns = self.df.columns.tolist()
+        self.rows = self.df.values.tolist()
         self.setup_ui()
         
     def setup_ui(self):
-        # Set modern style
         style = ttk.Style()
-        style.theme_use("clam")  # Use a modern theme
+        style.theme_use("clam")
         
-        # Configure colors
         style.configure("Treeview", 
                         background="#f8f9fa",
                         foreground="#212529",
@@ -26,45 +30,41 @@ class InventoryView:
                         background="#e9ecef", 
                         foreground="#495057")
         
-        # Create header frame
+        # Header Frame
         header_frame = Frame(self.window, bg="#363062", padx=20, pady=15)
         header_frame.pack(fill=tk.X)
-        
         tk.Label(header_frame, 
                 text="Inventory Items", 
                 font=("Segoe UI", 16, "bold"),
                 bg="#363062",
                 fg="white").pack(anchor="w")
                 
-        # Create main container
+        # Main Container
         container = Frame(self.window, bg="white", padx=20, pady=20)
         container.pack(fill=tk.BOTH, expand=True)
         
-        # Create treeview with columns
+        # Treeview in container with columns from the given functions dataframe
         self.tree = ttk.Treeview(container, columns=self.columns, show="headings")
         
-        # Define column headings with formatting
+        # Make columns
         for col in self.columns:
             self.tree.heading(col, text=col.capitalize(), anchor='center')
             self.tree.column(col, anchor='center', width=100)
         
-        # Insert inventory data
-        for record in self.records:
-            self.tree.insert("", "end", values=record)
+        # Insert inventory data into each row
+        for rows in self.rows:
+            self.tree.insert("", "end", values=rows)
             
-        # Add alternating row colors
+        # Create alternating row colors
         self.tree.tag_configure('oddrow', background='#f8f9fa')
         self.tree.tag_configure('evenrow', background='#e9ecef')
-        
         for i, item in enumerate(self.tree.get_children()):
             self.tree.item(item, tags=('evenrow' if i % 2 == 0 else 'oddrow',))
         
-        # Add scrollbars
+        # SCROLLBAR
         y_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
         x_scrollbar = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscroll=y_scrollbar.set, xscroll=x_scrollbar.set)
-        
-        # Pack everything
         y_scrollbar.pack(side="right", fill="y")
         x_scrollbar.pack(side="bottom", fill="x")
         self.tree.pack(expand=True, fill="both")

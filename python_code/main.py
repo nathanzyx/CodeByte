@@ -2,14 +2,14 @@ import pandas as pd
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk, Frame
 from datetime import datetime
-from DatabaseSystem import *
-from ui import *
+from database.DatabaseSystem import *
+from ui.ui import *
 
 db = pd.DataFrame()
 
 # main.py
-from DatabaseSystem import DatabaseSystem
-from ui import UI
+from database.DatabaseSystem import DatabaseSystem
+from ui.ui import UI
 
 def main():
     # Create instance of the inventory System

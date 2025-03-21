@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from unittest.mock import MagicMock, patch, call
-from DatabaseSystem import DatabaseSystem
+from python_code.database.DatabaseSystem import DatabaseSystem
 from ui import UI
 
 class TestDatabaseSystem(unittest.TestCase):

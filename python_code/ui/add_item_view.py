@@ -17,7 +17,7 @@ class AddItemView:
         # Get field specifications
         self.entries, self.message_labels, self.prod_specs = self.logic.get_add_item_specs(self.window)
         
-        # Colors with your new palette
+        # Color palette
         colors = {
             'primary': '#363062',     # Navy
             'bg': '#ffffff',          # White background
