@@ -47,7 +47,7 @@ This MVP represents the work completed during Iteration 1. We focused on establi
 Running `make test` in the terminal will execute the necessary tests to verify the program's functionality and usability:
     ```bash
     make test
-    ```bash
+    ```
 
 ### Usage
 
