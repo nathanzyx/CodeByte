@@ -54,8 +54,15 @@ class LoginView:
         # Check if the username and password match the hardcoded values
         if self.username_entry.get() == self.inventory_system.username and self.password_entry.get() == self.inventory_system.password:
             self.inventory_system.logged_in = True
-            self.window.destroy()
+            
             messagebox.showinfo("Login Sucessfull", "Welcome!")
+            # LOG MESSAGE
+            self.inventory_system.log_message(f" -- LOGIN SUCCESS: username: {str(self.inventory_system.username)}")
+            self.crnt_user = self.username_entry.get()
+            
+            self.window.destroy()
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")
+            # LOG MESSAGE
+            self.inventory_system.log_message(f" -- LOGIN FAILED: attempted username: {str(self.username_entry.get())}, attempted password: {str(self.password_entry.get())}")
         

@@ -1,0 +1,26 @@
+[2025-03-25 16:06:02] Field Added: field_name:test, entry_type:small_box, validation_type:int, required:0
+[2025-03-25 16:09:21] Item Added: field_name:{'id': '2', 'name': 'iphone 12', 'quantity': '40', 'price': '999.99', 'category': 'phones', 'brand': 'Apple', 'description': 'hello', 'test': ''}
+[2025-03-25 16:20:06]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:20:58]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:21:46]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:23:30]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:24:06] Item Added: field_name:{'id': '3', 'name': 'Iphone X', 'quantity': '12', 'price': '1199.00', 'category': 'Phones', 'brand': 'Apple', 'description': 'Iphone X 64 GB and 128 GB', 'test': ''}
+[2025-03-25 16:24:18] Item Removed: id:3, count:2
+[2025-03-25 16:24:32] Field Removed: field_name:test
+[2025-03-25 16:24:39]  -- LOGOUT: user:N/A
+[2025-03-25 16:26:23]  -- LOGOUT: user:N/A
+[2025-03-25 16:26:49]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:27:17]  -- LOGOUT: user:N/A
+[2025-03-25 16:27:26]  -- LOGOUT: user:N/A
+[2025-03-25 16:27:38]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:51:47]  -- LOGOUT: user:N/A
+[2025-03-25 16:52:14]  -- LOGOUT: user:N/A
+[2025-03-25 16:52:27]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:53:38]  -- LOGOUT: user:N/A
+[2025-03-25 16:53:43]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:54:39]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:54:46]  -- LOGOUT: user:N/A
+[2025-03-25 16:55:02]  -- LOGIN SUCCESS: username: 123
+[2025-03-25 16:55:32] Item Added: field_name:{'id': '5', 'name': 'Tab A', 'quantity': '3', 'price': '599.78', 'category': 'tablet', 'brand': 'Samsung', 'description': '128GB only'}
+[2025-03-25 16:55:45] Item Removed: id:5, count:2
+[2025-03-25 16:55:48]  -- LOGOUT: user:N/A

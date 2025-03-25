@@ -23,6 +23,9 @@ class DatabaseSystem:
         self.items_table = "products"
         self.fields_table = "fields"
         
+        # We get the log file in append mode
+        self.log_file = self.getLogFile(name, ".txt")
+        
         self.username = "123"
         self.password = "123"
         self.logged_in = False
@@ -37,7 +40,33 @@ class DatabaseSystem:
         if not products_exists:
             self.create_fields_table()
             self.create_products_table()
+    
+    #
+    #   This function returns the log file for the database in append mode
+    #       - Will create a new file if it does not exist
+    #
+    def getLogFile(self, name: str, type: str):
+        log_file_path = f"{name}{type}"
+        # Ensure file exists before opening
+        if not os.path.exists(log_file_path):
+            with open(log_file_path, 'w') as file:
+                file.write("")  # Create an empty file
         
+        # Open file in append mode and return the file object
+        return open(log_file_path, 'a')
+    
+    #
+    #   This function writes a message to the log file
+    # 
+    def log_message(self, message: str):
+        # Create the time of the message
+        timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+        
+        self.log_file.write(f"{timestamp} {message}\n")
+        self.log_file.flush()
+            
+    
+    
     def set_ui(self, ui):
         self.ui = ui
         
@@ -133,10 +162,12 @@ class DatabaseSystem:
                 self.cursor.execute(f"ALTER TABLE {self.items_table} ADD COLUMN {field_name} {sql_type}")
                 self.conn.commit()
             
-            print(f"Field '{field_name}' added successfully!")
+            # LOG MESSAGE
+            self.log_message(f"Field Added: field_name:{str(field_name)}, entry_type:{str(entry_type)}, validation_type:{str(validation_type)}, required:{str(required_int)}")
             return True
         except sqlite3.IntegrityError:
-            print(f"Field '{field_name}' already exists.")
+            # LOG MESSAGE
+            self.log_message(f"ERROR: Field Added Attempted: field_name:{str(field_name)}, entry_type:{str(entry_type)}, validation_type:{str(validation_type)}, required:{str(required_int)}")
         return False
 
     
@@ -149,7 +180,8 @@ class DatabaseSystem:
         # This function adds field to the fields table
         self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name = ?", (field_name,))
         self.conn.commit()
-        print(f"Field '{field_name}' removed successfully!")
+        # LOG MESSAGE
+        self.log_message(f"Field Removed: field_name:{str(field_name)}")
     
     
 
@@ -181,6 +213,8 @@ class DatabaseSystem:
         self.cursor.execute(f"INSERT INTO {self.items_table} ({field_names}) VALUES ({placeholders})", values)
         self.conn.commit()
         
+        # LOG MESSAGE
+        self.log_message(f"Item Added: field_name:{str(product_data)}")
         return True
     
     
@@ -213,6 +247,8 @@ class DatabaseSystem:
         new_quantity = current_quantity - item_count
         self.cursor.execute(f"UPDATE {self.items_table} SET quantity=? WHERE id=?", (new_quantity, item_id))
         self.conn.commit()
+        
+        self.log_message(f"Item Removed: id:{str(item_id)}, count:{str(item_count)}")
         
     
     def get_all_items(self):
@@ -269,6 +305,10 @@ class DatabaseSystem:
             sql = f"UPDATE {self.items_table} SET {set_clause} WHERE id=?"
             self.cursor.execute(sql, values)
             self.conn.commit()
+            
+            # LOG MESSAGE
+            self.log_message(f"Item Modified: id:{str(item_id)}, new_data:{str(new_data)}")
+            
             return True
         except Exception as e:
             print(f"Error updating item: {e}")
@@ -284,5 +324,7 @@ class DatabaseSystem:
             self.cursor.execute(f"DELETE FROM {self.items_table}")
             self.conn.commit()
             messagebox.showinfo("Success", "Database cleared successfully.")
+            # LOG MESSAGE
+            self.log_message(f"Database Cleared!")
         else:
             messagebox.showinfo("Cancelled", "Database clear operation cancelled.")

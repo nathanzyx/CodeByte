@@ -24,6 +24,8 @@ class UI:
         self.inventory_system = inventory_system
         self.logic = UILogic(inventory_system)
         self.patterns = self.logic.patterns
+        self.crnt_user = "N/A"
+        self.root = tk.Tk()
     
     #
     #   This function returns the users login status along with a message if not logged in
@@ -84,6 +86,14 @@ class UI:
     def display_login(self):
         if not self.inventory_system.logged_in:
             LoginView(tk._default_root, self.logic, self.inventory_system)
+            
+    def exit_application(self):
+        # Perform any actions you want before exiting
+        print("Closing App...")
+        self.inventory_system.log_message(f" -- LOGOUT: user:{str(self.crnt_user)}")
+
+        # Exit application
+        self.root.quit()
         
     #   MENU
     #       - Display Inventory (see all products in database table)
@@ -93,10 +103,10 @@ class UI:
     #       - Exit (quit the program)
     def display_menu(self):
             
-        root = tk.Tk()
-        root.title(self.inventory_system.name)
-        root.geometry("1200x800")
-        root.configure(bg="#f0f2f5")
+        # self.root = tk.Tk()
+        self.root.title(self.inventory_system.name)
+        self.root.geometry("1200x800")
+        self.root.configure(bg="#f0f2f5")
 
         # Define color scheme
         colors = {
@@ -111,7 +121,7 @@ class UI:
         }
 
         # Create main container with sidebar and content area
-        main_container = Frame(root, bg=colors['bg'])
+        main_container = Frame(self.root, bg=colors['bg'])
         main_container.pack(fill=tk.BOTH, expand=True)
 
         # Sidebar
@@ -180,7 +190,7 @@ class UI:
         
         # Exit button at bottom of sidebar
         exit_btn = tk.Button(sidebar, text=" 🚪  Exit Application",
-                            command=root.quit,
+                            command=self.exit_application,
                             font=("Segoe UI", 11),
                             fg="white",
                             bg=colors['danger'],
@@ -261,7 +271,7 @@ class UI:
                             fg=colors['subtext'])
         version_label.pack(side=tk.RIGHT)
 
-        root.mainloop()
+        self.root.mainloop()
 
     def validate_input(self, value, validation_type, is_required, label, message_labels):
         if is_required and not value.strip():
