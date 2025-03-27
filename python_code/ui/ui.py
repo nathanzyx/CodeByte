@@ -1,4 +1,6 @@
 import pandas as pd
+import sys
+import os
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk, Frame
 from datetime import datetime
@@ -14,19 +16,52 @@ from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
 
-#   UI Class
-#
-#   This class is for the UI of a database instance
-#
+# Only import the AI modules if the AI exists
+AI_exists = False
+model_folder_path = os.path.join("llama", "llama3B", "model")
+if os.path.isdir(model_folder_path):
+    from ui.embed_ai import EmbedAI
+    from llama.llama3B.Llama_AI import Llama_AI 
+    AI_exists = True
 
+# from ui.embed_ai import EmbedAI
+# from llama.llama3B.Llama_AI import Llama_AI
+
+#   UI Class
+#    -  This class is for the UI of a database instance
+#
 class UI:
     def __init__(self, inventory_system):
         self.inventory_system = inventory_system
+        self.AI_exists = AI_exists
+        # Only Create AI instance if the model folder exists
+        if(self.AI_exists):
+            self.llama = Llama_AI(inventory_system)
+            
         self.logic = UILogic(inventory_system)
         self.patterns = self.logic.patterns
         self.crnt_user = "N/A"
         self.root = tk.Tk()
-    
+        
+        self.colors = {
+            'bg': '#f0f2f5',
+            'sidebar': '#ffffff',
+            'primary': '#363062',
+            'secondary': '#424242',
+            'accent': '#2196f3',
+            'danger': '#f44336',
+            'text': '#2c3e50',
+            'subtext': '#666666'
+        }
+        self.container = None
+        # self.container = Frame(self.root, bg=self.colors['bg']).pack(fill=tk.BOTH, expand=True)
+
+        self.content = None
+        # self.content = Frame(self.container, bg=self.colors['bg']).pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
+
+        self.llama_frame = None
+        # self.llama_frame = Frame(self.content, bg="white", padx=30, pady=30).pack(fill=tk.BOTH, pady=(20, 0))
+
     #
     #   This function returns the users login status along with a message if not logged in
     #
@@ -87,6 +122,10 @@ class UI:
         if not self.inventory_system.logged_in:
             LoginView(tk._default_root, self.logic, self.inventory_system)
             
+    def display_ai_assistant(self):
+        EmbedAI(tk._default_root, self.inventory_system, self.llama_frame, self.llama)
+        
+            
     def exit_application(self):
         # Perform any actions you want before exiting
         print("Closing App...")
@@ -94,6 +133,7 @@ class UI:
 
         # Exit application
         self.root.quit()
+    
         
     #   MENU
     #       - Display Inventory (see all products in database table)
@@ -108,47 +148,50 @@ class UI:
         self.root.geometry("1200x800")
         self.root.configure(bg="#f0f2f5")
 
-        # Define color scheme
-        colors = {
-            'bg': '#f0f2f5',
-            'sidebar': '#ffffff',
-            'primary': '#363062',
-            'secondary': '#424242',
-            'accent': '#2196f3',
-            'danger': '#f44336',
-            'text': '#2c3e50',
-            'subtext': '#666666'
-        }
+        # # Define color scheme
+        # colors = {
+        #     'bg': '#f0f2f5',
+        #     'sidebar': '#ffffff',
+        #     'primary': '#363062',
+        #     'secondary': '#424242',
+        #     'accent': '#2196f3',
+        #     'danger': '#f44336',
+        #     'text': '#2c3e50',
+        #     'subtext': '#666666'
+        # }
 
         # Create main container with sidebar and content area
-        main_container = Frame(self.root, bg=colors['bg'])
-        main_container.pack(fill=tk.BOTH, expand=True)
+        # main_container = Frame(self.root, bg=self.colors['bg'])
+        # main_container.pack(fill=tk.BOTH, expand=True)
+        self.container = Frame(self.root, bg=self.colors['bg'])
+        self.container.pack(fill=tk.BOTH, expand=True)
+        main_container = self.container
 
         # Sidebar
-        sidebar = Frame(main_container, bg=colors['sidebar'], width=280)
+        sidebar = Frame(main_container, bg=self.colors['sidebar'], width=280)
         sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=0)
         sidebar.pack_propagate(False)  # Maintain width
 
         # Logo and title area
-        logo_frame = Frame(sidebar, bg=colors['primary'], height=130)
+        logo_frame = Frame(sidebar, bg=self.colors['primary'], height=130)
         logo_frame.pack(fill=tk.X)
         
-        logo_label = tk.Label(logo_frame, text="💻", font=("Arial", 28), bg=colors['primary'], fg="white")
+        logo_label = tk.Label(logo_frame, text="💻", font=("Arial", 28), bg=self.colors['primary'], fg="white")
         logo_label.pack(pady=(20, 0))
         
         # App name - take first word from inventory system name
         app_name = tk.Label(logo_frame, text=self.inventory_system.name.split()[0], 
-                          font=("Segoe UI", 16, "bold"), bg=colors['primary'], fg="white")
+                          font=("Segoe UI", 16, "bold"), bg=self.colors['primary'], fg="white")
         app_name.pack(pady=(0, 5))
         
         # Tagline
         tagline = tk.Label(logo_frame, text="Inventory System", font=("Segoe UI", 10), 
-                         bg=colors['primary'], fg="#e0e0e0")
+                         bg=self.colors['primary'], fg="#e0e0e0")
         tagline.pack(pady=(0, 10))
         
 
         # Navigation menu
-        nav_frame = Frame(sidebar, bg=colors['sidebar'])
+        nav_frame = Frame(sidebar, bg=self.colors['sidebar'])
         nav_frame.pack(fill=tk.BOTH, expand=True, padx=16)
 
         # Button style
@@ -159,8 +202,8 @@ class UI:
             "anchor": "w",
             "bd": 0,
             "cursor": "hand2",
-            "fg": colors['text'],
-            "bg": colors['sidebar']
+            "fg": self.colors['text'],
+            "bg": self.colors['sidebar']
         }
 
         def create_nav_button(text, icon, command):
@@ -168,9 +211,9 @@ class UI:
             btn.pack(pady=4)
             
             def on_hover(e):
-                e.widget['bg'] = colors['bg']
+                e.widget['bg'] = self.colors['bg']
             def on_leave(e):
-                e.widget['bg'] = colors['sidebar']
+                e.widget['bg'] = self.colors['sidebar']
                 
             btn.bind("<Enter>", on_hover)
             btn.bind("<Leave>", on_leave)
@@ -183,7 +226,7 @@ class UI:
         create_nav_button("Remove Product", "➖", self.display_remove_item)
         
         # Separator
-        tk.Frame(nav_frame, height=2, bg=colors['bg']).pack(fill=tk.X, pady=20)
+        tk.Frame(nav_frame, height=2, bg=self.colors['bg']).pack(fill=tk.X, pady=20)
         
         create_nav_button("Manage Fields", "⚙️", self.display_options)
         create_nav_button("Clear Database", "🗑️", self.inventory_system.clear_database)
@@ -193,7 +236,7 @@ class UI:
                             command=self.exit_application,
                             font=("Segoe UI", 11),
                             fg="white",
-                            bg=colors['danger'],
+                            bg=self.colors['danger'],
                             bd=0,
                             cursor="hand2",
                             width=28,
@@ -215,12 +258,15 @@ class UI:
                            text="Made by CodeByte",
                            font=("Segoe UI", 8, "italic"),
                            fg="#a0a0a0",
-                           bg=colors['sidebar'])
+                           bg=self.colors['sidebar'])
         watermark.pack(side=tk.BOTTOM, pady=(0, 5))
 
         # Main content area
-        content = Frame(main_container, bg=colors['bg'])
-        content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
+        self.content = Frame(self.container, bg=self.colors['bg'])
+        self.content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
+        content = self.content
+        # content = Frame(main_container, bg=self.colors['bg'])
+        # content.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
 
         # Welcome card
         welcome_card = Frame(content, bg="white", padx=30, pady=30)
@@ -230,16 +276,16 @@ class UI:
                 text="Welcome to Your Inventory Dashboard",
                 font=("Segoe UI", 20, "bold"),
                 bg="white",
-                fg=colors['text']).pack(anchor="w")
+                fg=self.colors['text']).pack(anchor="w")
                 
         tk.Label(welcome_card,
                 text="Manage your inventory efficiently with our modern interface",
                 font=("Segoe UI", 12),
                 bg="white",
-                fg=colors['subtext']).pack(anchor="w", pady=(10, 0))
+                fg=self.colors['subtext']).pack(anchor="w", pady=(10, 0))
 
         # Stats cards container
-        stats_container = Frame(content, bg=colors['bg'])
+        stats_container = Frame(content, bg=self.colors['bg'])
         stats_container.pack(fill=tk.X, pady=20)
         
         # Create three stat cards
@@ -250,25 +296,40 @@ class UI:
             tk.Label(card, text=icon, font=("Segoe UI", 24),
                     bg="white").pack(anchor="w")
             tk.Label(card, text=title, font=("Segoe UI", 11),
-                    bg="white", fg=colors['subtext']).pack(anchor="w")
+                    bg="white", fg=self.colors['subtext']).pack(anchor="w")
             tk.Label(card, text=value, font=("Segoe UI", 20, "bold"),
-                    bg="white", fg=colors['text']).pack(anchor="w")
+                    bg="white", fg=self.colors['text']).pack(anchor="w")
 
         # Add sample stats (you can replace these with real data)
         create_stat_card("Total Products", "--", "📦")
         create_stat_card("Low Stock Items", "--", "⚠️")
         create_stat_card("Total Value", "$--", "💰")
+        
+        
+        
+        
+        # AI Assistant section
+        self.llama_frame = Frame(self.content, bg="white", padx=30, pady=30)
+        self.llama_frame.pack(fill=tk.BOTH, pady=(20, 0))
+        # Only embed the AI if the AI exists
+        if (self.AI_exists):
+            EmbedAI(self.llama, self.llama_frame)
+        ai_frame = self.llama_frame
+        
+
+
+
 
         # Footer
-        footer = Frame(content, bg=colors['bg'])
+        footer = Frame(content, bg=self.colors['bg'])
         footer.pack(side=tk.BOTTOM, fill=tk.X)
         
         current_time = datetime.now().strftime("%d %b %Y")
         version_label = tk.Label(footer,
                             text=f"v1.0 • {current_time}",
                             font=("Segoe UI", 9),
-                            bg=colors['bg'],
-                            fg=colors['subtext'])
+                            bg=self.colors['bg'],
+                            fg=self.colors['subtext'])
         version_label.pack(side=tk.RIGHT)
 
         self.root.mainloop()

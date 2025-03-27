@@ -24,3 +24,28 @@
 [2025-03-25 16:55:32] Item Added: field_name:{'id': '5', 'name': 'Tab A', 'quantity': '3', 'price': '599.78', 'category': 'tablet', 'brand': 'Samsung', 'description': '128GB only'}
 [2025-03-25 16:55:45] Item Removed: id:5, count:2
 [2025-03-25 16:55:48]  -- LOGOUT: user:N/A
+[2025-03-26 16:18:00]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 16:20:05]  -- LOGOUT: user:N/A
+[2025-03-26 16:58:27]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 16:59:45] Item Removed: id:5, count:1
+[2025-03-26 17:03:04]  -- LOGOUT: user:N/A
+[2025-03-26 17:03:59]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 17:11:34]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 17:19:08]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 17:19:15] Item Modified: id:1, new_data:{'id': '1', 'name': 'iphone 8', 'quantity': '35', 'price': '549.99', 'category': 'Phones', 'brand': 'Apple', 'description': '64GB', 'test': 'None'}
+[2025-03-26 17:19:20]  -- LOGOUT: user:N/A
+[2025-03-26 17:44:28]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 17:44:37]  -- LOGOUT: user:N/A
+[2025-03-26 21:51:18]  -- LOGOUT: user:N/A
+[2025-03-26 22:33:48]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 22:38:44]  -- LOGOUT: user:N/A
+[2025-03-26 22:47:04]  -- LOGIN FAILED: attempted username: 123, attempted password: 
+[2025-03-26 22:47:07]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 22:51:07] Item Added: field_name:{'id': '4', 'name': 'Macbook Air M3', 'quantity': '2', 'price': '999.00', 'category': 'laptops', 'brand': 'Apple', 'description': '256GB and 512GB'}
+[2025-03-26 23:07:16]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 23:08:47]  -- LOGOUT: user:N/A
+[2025-03-26 23:13:06]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 23:15:16]  -- LOGOUT: user:N/A
+[2025-03-26 23:15:41]  -- LOGIN SUCCESS: username: 123
+[2025-03-26 23:17:46] Item Modified: id:5, new_data:{'id': '5', 'name': 'Tab A', 'quantity': '0', 'price': '599.78', 'category': 'tablet', 'brand': 'Samsung', 'description': '128GB and 2TB', 'test': 'None'}
+[2025-03-26 23:45:51]  -- LOGIN SUCCESS: username: 123
