@@ -16,16 +16,8 @@ from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
 
-# Only import the AI modules if the AI exists
-AI_exists = False
-model_folder_path = os.path.join("llama", "llama3B", "model")
-if os.path.isdir(model_folder_path):
-    from ui.embed_ai import EmbedAI
-    from llama.llama3B.Llama_AI import Llama_AI 
-    AI_exists = True
-
-# from ui.embed_ai import EmbedAI
-# from llama.llama3B.Llama_AI import Llama_AI
+from ui.embed_ai import EmbedAI
+from ai.AI import AI 
 
 #   UI Class
 #    -  This class is for the UI of a database instance
@@ -33,10 +25,7 @@ if os.path.isdir(model_folder_path):
 class UI:
     def __init__(self, inventory_system):
         self.inventory_system = inventory_system
-        self.AI_exists = AI_exists
-        # Only Create AI instance if the model folder exists
-        if(self.AI_exists):
-            self.llama = Llama_AI(inventory_system)
+        self.ai = AI(inventory_system)
             
         self.logic = UILogic(inventory_system)
         self.patterns = self.logic.patterns
@@ -59,8 +48,8 @@ class UI:
         self.content = None
         # self.content = Frame(self.container, bg=self.colors['bg']).pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=30, pady=30)
 
-        self.llama_frame = None
-        # self.llama_frame = Frame(self.content, bg="white", padx=30, pady=30).pack(fill=tk.BOTH, pady=(20, 0))
+        self.ai_frame = None
+        # self.ai_frame = Frame(self.content, bg="white", padx=30, pady=30).pack(fill=tk.BOTH, pady=(20, 0))
 
     #
     #   This function returns the users login status along with a message if not logged in
@@ -123,7 +112,7 @@ class UI:
             LoginView(tk._default_root, self.logic, self.inventory_system)
             
     def display_ai_assistant(self):
-        EmbedAI(tk._default_root, self.inventory_system, self.llama_frame, self.llama)
+        EmbedAI(tk._default_root, self.inventory_system, self.ai_frame, self.ai)
         
             
     def exit_application(self):
@@ -309,12 +298,10 @@ class UI:
         
         
         # AI Assistant section
-        self.llama_frame = Frame(self.content, bg="white", padx=30, pady=30)
-        self.llama_frame.pack(fill=tk.BOTH, pady=(20, 0))
-        # Only embed the AI if the AI exists
-        if (self.AI_exists):
-            EmbedAI(self.llama, self.llama_frame)
-        ai_frame = self.llama_frame
+        self.ai_frame = Frame(self.content, bg="white", padx=30, pady=30)
+        self.ai_frame.pack(fill=tk.BOTH, pady=(20, 0))
+        EmbedAI(self.ai, self.ai_frame)
+        ai_frame = self.ai_frame
         
 
 
