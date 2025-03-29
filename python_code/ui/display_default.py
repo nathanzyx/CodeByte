@@ -1,5 +1,5 @@
-import tkinter as tk
-from tkinter import ttk, Frame
+import customtkinter as ctk
+from tkinter import ttk
 
 
 #
@@ -8,7 +8,7 @@ from tkinter import ttk, Frame
 #
 class DisplayDefault:
     def __init__(self, parent, function):
-        self.window = tk.Toplevel(parent)
+        self.window = ctk.CTkToplevel(parent)
         self.window.title("Inventory")
         self.window.geometry("900x600")
         self.df = function()
@@ -31,17 +31,16 @@ class DisplayDefault:
                         foreground="#495057")
         
         # Header Frame
-        header_frame = Frame(self.window, bg="#363062", padx=20, pady=15)
-        header_frame.pack(fill=tk.X)
-        tk.Label(header_frame, 
-                text="Inventory Items", 
-                font=("Segoe UI", 16, "bold"),
-                bg="#363062",
-                fg="white").pack(anchor="w")
+        header_frame = ctk.CTkFrame(self.window, fg_color="#363062", corner_radius=0)
+        header_frame.pack(fill=ctk.X)
+        ctk.CTkLabel(header_frame, 
+                     text="Inventory Items", 
+                     font=("Segoe UI", 16, "bold"),
+                     text_color="white").pack(anchor="w", padx=20, pady=15)
                 
         # Main Container
-        container = Frame(self.window, bg="white", padx=20, pady=20)
-        container.pack(fill=tk.BOTH, expand=True)
+        container = ctk.CTkFrame(self.window, fg_color="white", corner_radius=0)
+        container.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
         
         # Treeview in container with columns from the given functions dataframe
         self.tree = ttk.Treeview(container, columns=self.columns, show="headings")
@@ -62,20 +61,19 @@ class DisplayDefault:
             self.tree.item(item, tags=('evenrow' if i % 2 == 0 else 'oddrow',))
         
         # SCROLLBAR
-        y_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
-        x_scrollbar = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
+        y_scrollbar = ctk.CTkScrollbar(container, orientation="vertical", command=self.tree.yview)
+        x_scrollbar = ctk.CTkScrollbar(container, orientation="horizontal", command=self.tree.xview)
         self.tree.configure(yscroll=y_scrollbar.set, xscroll=x_scrollbar.set)
         y_scrollbar.pack(side="right", fill="y")
         x_scrollbar.pack(side="bottom", fill="x")
         self.tree.pack(expand=True, fill="both")
         
         # Footer with watermark
-        footer = Frame(self.window, bg="#f0f2f5", padx=10, pady=5)
-        footer.pack(fill=tk.X, side=tk.BOTTOM)
+        footer = ctk.CTkFrame(self.window, fg_color="#f0f2f5", corner_radius=0)
+        footer.pack(fill=ctk.X, side=ctk.BOTTOM)
         
-        watermark = tk.Label(footer, 
-                           text="Made by CodeByte",
-                           font=("Segoe UI", 8, "italic"),
-                           fg="#a0a0a0",
-                           bg="#f0f2f5")
-        watermark.pack(side=tk.RIGHT)
+        watermark = ctk.CTkLabel(footer, 
+                                 text="Made by CodeByte",
+                                 font=("Segoe UI", 8, "italic"),
+                                 text_color="#a0a0a0")
+        watermark.pack(side=ctk.RIGHT, padx=10, pady=5)

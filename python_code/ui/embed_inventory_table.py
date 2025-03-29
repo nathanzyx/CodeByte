@@ -1,15 +1,15 @@
-import tkinter as tk
-from tkinter import ttk, Frame
+import customtkinter as ctk
+from tkinter import ttk
 
 #
 # Embed Inventory Table Class is initialized with a function that returns a dataframe
-# This class is embeds a table in a UI window
+# This class embeds a table in a UI window
 #
 class EmbedInventoryTable:
     def __init__(self, parent, function):
         self.parent = parent
         self.df = function()
-        # Dataframes columns and rows
+        # Dataframe columns and rows
         self.columns = self.df.columns.tolist()
         self.rows = self.df.values.tolist()
         
@@ -24,7 +24,6 @@ class EmbedInventoryTable:
         
         self.setup_ui()
         
-        
     def setup_ui(self):
         # Set modern style for the treeview
         style = ttk.Style()
@@ -37,12 +36,12 @@ class EmbedInventoryTable:
                         fieldbackground=self.colors['bg'])
         
         # Create header frame inside the parent
-        header_frame = Frame(self.parent, bg="#363062", padx=20, pady=15)
-        header_frame.pack(fill=tk.X)
+        header_frame = ctk.CTkFrame(self.parent, fg_color="#363062", corner_radius=0)
+        header_frame.pack(fill=ctk.X, padx=20, pady=15)
                 
         # Main container for the table
-        container = Frame(self.parent, bg="white", padx=20, pady=20)
-        container.pack(fill=tk.BOTH, expand=True)
+        container = ctk.CTkFrame(self.parent, fg_color="white", corner_radius=0)
+        container.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
         
         # Create the treeview widget with the appropriate columns
         self.tree = ttk.Treeview(container, columns=self.columns, show="headings")
@@ -51,6 +50,7 @@ class EmbedInventoryTable:
         for col in self.columns:
             self.tree.heading(col, text=col.capitalize(), anchor='center')
             self.tree.column(col, anchor='center', width=100)
+        
         # Rows for table format
         for row in self.rows:
             self.tree.insert("", "end", values=row)
@@ -62,29 +62,28 @@ class EmbedInventoryTable:
             self.tree.item(item, tags=('evenrow' if i % 2 == 0 else 'oddrow',))
         
         # ENABLE SCROLLING
-        y_scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
-        x_scrollbar = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
+        y_scrollbar = ctk.CTkScrollbar(container, orientation="vertical", command=self.tree.yview)
+        x_scrollbar = ctk.CTkScrollbar(container, orientation="horizontal", command=self.tree.xview)
         self.tree.configure(yscroll=y_scrollbar.set, xscroll=x_scrollbar.set)
         y_scrollbar.pack(side="right", fill="y")
         x_scrollbar.pack(side="bottom", fill="x")
         self.tree.pack(expand=True, fill="both")
         
-        footer = Frame(self.parent, bg="#f0f2f5", padx=10, pady=5)
-        footer.pack(fill=tk.X, side=tk.BOTTOM)
+        footer = ctk.CTkFrame(self.parent, fg_color="#f0f2f5", corner_radius=0)
+        footer.pack(fill=ctk.X, side=ctk.BOTTOM, padx=10, pady=5)
         
-        watermark = tk.Label(footer, 
-                             text="Made by CodeByte",
-                             font=("Segoe UI", 8, "italic"),
-                             fg="#a0a0a0",
-                             bg="#f0f2f5")
-        watermark.pack(side=tk.RIGHT)
+        watermark = ctk.CTkLabel(footer, 
+                                 text="Made by CodeByte",
+                                 font=("Segoe UI", 8, "italic"),
+                                 text_color="#a0a0a0")
+        watermark.pack(side=ctk.RIGHT)
         
     def update_table(self, new_df):
         self.df = new_df
         self.columns = self.df.columns.tolist()
         self.rows = self.df.values.tolist()
 
-        # Clear existing items form the table
+        # Clear existing items from the table
         for item in self.tree.get_children():
             self.tree.delete(item)
         

@@ -1,9 +1,9 @@
-import tkinter as tk
-from tkinter import messagebox, Frame
+import customtkinter as ctk
+from tkinter import messagebox
 
 class AddItemView:
     def __init__(self, parent, logic, inventory_system):
-        self.window = tk.Toplevel(parent)
+        self.window = ctk.CTkToplevel(parent)
         self.window.title("Add Item")
         self.window.geometry("750x500")
         self.window.resizable(False, False)
@@ -28,24 +28,23 @@ class AddItemView:
         }
         
         # Header
-        header = Frame(self.window, bg=colors['primary'], pady=10)
-        header.pack(fill=tk.X)
+        header = ctk.CTkFrame(self.window, fg_color=colors['primary'], corner_radius=0)
+        header.pack(fill=ctk.X)
         
-        tk.Label(header, 
+        ctk.CTkLabel(header, 
                text="Add New Product", 
                font=("Segoe UI", 14, "bold"),
-               bg=colors['primary'],
-               fg="white").pack(padx=20)
+               text_color="white").pack(padx=20)
         
         # Main form container
-        form_container = Frame(self.window, bg=colors['bg'], padx=25, pady=10)
-        form_container.pack(fill=tk.BOTH, expand=True)
+        form_container = ctk.CTkFrame(self.window, fg_color=colors['bg'], corner_radius=0)
+        form_container.pack(fill=ctk.BOTH, expand=True, padx=25, pady=10)
         
-        # Create scrollable frame for forms with reduced padding
-        canvas = tk.Canvas(form_container, bg=colors['bg'], highlightthickness=0)
-        scrollbar = tk.Scrollbar(form_container, orient="vertical", command=canvas.yview)
+        # Create scrollable frame for forms
+        canvas = ctk.CTkCanvas(form_container, bg=colors['bg'], highlightthickness=0)
+        scrollbar = ctk.CTkScrollbar(form_container, orientation="vertical", command=canvas.yview)
         
-        scrollable_frame = Frame(canvas, bg=colors['bg'])
+        scrollable_frame = ctk.CTkFrame(canvas, fg_color=colors['bg'])
         scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
@@ -54,95 +53,80 @@ class AddItemView:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Form fields with reduced spacing
+        # Form fields
         for i, (label, props) in enumerate(self.prod_specs.items()):
-            field_frame = Frame(scrollable_frame, bg=colors['bg'], pady=3)  # Reduced padding
-            field_frame.pack(fill=tk.X, pady=4)  # Reduced spacing between fields
+            field_frame = ctk.CTkFrame(scrollable_frame, fg_color=colors['bg'])
+            field_frame.pack(fill=ctk.X, pady=4)
             
-            # Label with custom styling
-            tk.Label(field_frame, 
+            # Label
+            ctk.CTkLabel(field_frame, 
                    text=label, 
                    font=("Segoe UI", 10, "bold"),
-                   bg=colors['bg'],
-                   fg=colors['text']).grid(row=0, column=0, sticky="w", pady=(0,2))  # Reduced padding
+                   text_color=colors['text']).grid(row=0, column=0, sticky="w", pady=(0, 2))
             
-            # Entry with custom styling
+            # Entry
             input_type = props['entry_type']
             if input_type == 'small_box':
-                entry = tk.Entry(field_frame, 
+                entry = ctk.CTkEntry(field_frame, 
                               font=("Segoe UI", 10),
-                              width=50,
-                              relief=tk.SOLID,
-                              bd=1)
+                              width=400)
             elif input_type == 'large_box':
-                entry = tk.Text(field_frame, 
+                entry = ctk.CTkTextbox(field_frame, 
                              font=("Segoe UI", 10),
-                             width=50, 
-                             height=3,  # Reduced height
-                             relief=tk.SOLID,
-                             bd=1)
+                             width=400, 
+                             height=80)
             
             entry.grid(row=1, column=0, sticky="ew")
             
             # Required indicator
             if props.get('required', False):
-                tk.Label(field_frame, 
+                ctk.CTkLabel(field_frame, 
                        text="*Required", 
                        font=("Segoe UI", 8),
-                       bg=colors['bg'],
-                       fg=colors['error']).grid(row=0, column=1, sticky="w", padx=5)
+                       text_color=colors['error']).grid(row=0, column=1, sticky="w", padx=5)
             
             # Error message label
-            message_label = tk.Label(field_frame, 
+            message_label = ctk.CTkLabel(field_frame, 
                                   text="", 
                                   font=("Segoe UI", 8),
-                                  bg=colors['bg'],
-                                  fg=colors['error'])
+                                  text_color=colors['error'])
             message_label.grid(row=2, column=0, sticky="w")
             
             self.message_labels[label] = message_label
             self.entries[label] = (entry, props['validation'], props.get('required', False))
         
         # Buttons container
-        button_frame = Frame(self.window, bg=colors['light_bg'], pady=10)  # Reduced padding
-        button_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        button_frame = ctk.CTkFrame(self.window, fg_color=colors['light_bg'], corner_radius=0)
+        button_frame.pack(fill=ctk.X, side=ctk.BOTTOM, pady=10)
         
         # Cancel button
-        cancel_btn = tk.Button(button_frame, 
+        cancel_btn = ctk.CTkButton(button_frame, 
                              text="Cancel", 
                              command=self.window.destroy,
                              font=("Segoe UI", 10),
-                             bg="white",
-                             fg=colors['text'],
-                             padx=15,
-                             pady=5,
-                             relief=tk.SOLID,
-                             bd=1)
-        cancel_btn.pack(side=tk.LEFT, padx=20)
+                             fg_color="white",
+                             text_color=colors['text'])
+        cancel_btn.pack(side=ctk.LEFT, padx=20)
         
         # Add item button
-        submit_btn = tk.Button(button_frame, 
+        submit_btn = ctk.CTkButton(button_frame, 
                              text="Add Item", 
                              command=self.add_item_submit,
                              font=("Segoe UI", 10, "bold"),
-                             bg=colors['success'],
-                             fg="white",
-                             padx=15,
-                             pady=5,
-                             relief=tk.FLAT)
-        submit_btn.pack(side=tk.RIGHT, padx=20)
+                             fg_color=colors['success'],
+                             text_color="white")
+        submit_btn.pack(side=ctk.RIGHT, padx=20)
         
         # Pack canvas and scrollbar
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
         # Footer with watermark
-        watermark = tk.Label(button_frame, 
+        watermark = ctk.CTkLabel(button_frame, 
                           text="Made by CodeByte",
                           font=("Segoe UI", 8, "italic"),
-                          fg="#a0a0a0",
-                          bg=colors['light_bg'])
-        watermark.pack(side=tk.BOTTOM, pady=(10, 0))
+                          text_color="#a0a0a0")
+        watermark.pack(side=ctk.BOTTOM, pady=(10, 0))
         
     def add_item_submit(self):
         # Clear previous error messages
@@ -155,7 +139,7 @@ class AddItemView:
         
         for label, (entry, validation_type, is_required) in self.entries.items():
             # Get the value depending on entry type
-            if isinstance(entry, tk.Text):
+            if isinstance(entry, ctk.CTkTextbox):
                 value = entry.get("1.0", "end-1c")
             else:
                 value = entry.get()

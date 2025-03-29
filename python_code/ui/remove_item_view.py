@@ -1,10 +1,10 @@
-import tkinter as tk
-from tkinter import messagebox, Frame
+import customtkinter as ctk
+from tkinter import messagebox
 import re
 
 class RemoveItemView:
     def __init__(self, parent, inventory_system, patterns):
-        self.window = tk.Toplevel(parent)
+        self.window = ctk.CTkToplevel(parent)
         self.window.title("Remove Item")
         self.window.geometry("500x700")
         self.inventory_system = inventory_system
@@ -23,114 +23,92 @@ class RemoveItemView:
         }
         
         # Header
-        header = Frame(self.window, bg=colors['warning'], pady=15)
-        header.pack(fill=tk.X)
+        header = ctk.CTkFrame(self.window, fg_color=colors['warning'], corner_radius=0)
+        header.pack(fill=ctk.X)
         
-        tk.Label(header, 
+        ctk.CTkLabel(header, 
                text="Remove Product", 
                font=("Segoe UI", 14, "bold"),
-               bg=colors['warning'],
-               fg="white").pack(padx=20)
+               text_color="white").pack(padx=20, pady=15)
         
         # Main container
-        main_container = Frame(self.window, bg=colors['bg'], padx=40, pady=30)
-        main_container.pack(fill=tk.BOTH, expand=True)
-        
-        # Form fields with improved layout
+        main_container = ctk.CTkFrame(self.window, fg_color=colors['bg'], corner_radius=0)
+        main_container.pack(fill=ctk.BOTH, expand=True, padx=40, pady=30)
         
         # ID field
-        id_frame = Frame(main_container, bg=colors['bg'], pady=15)
-        id_frame.pack(fill=tk.X)
+        id_frame = ctk.CTkFrame(main_container, fg_color=colors['bg'])
+        id_frame.pack(fill=ctk.X, pady=15)
         
-        tk.Label(id_frame, 
+        ctk.CTkLabel(id_frame, 
                text="Item ID", 
                font=("Segoe UI", 11, "bold"),
-               bg=colors['bg'],
-               fg=colors['text']).pack(anchor="w")
+               text_color=colors['text']).pack(anchor="w")
         
-        self.id_entry = tk.Entry(id_frame, 
+        self.id_entry = ctk.CTkEntry(id_frame, 
                               font=("Segoe UI", 11),
-                              width=40,
-                              relief=tk.SOLID,
-                              bd=1)
-        self.id_entry.pack(fill=tk.X, pady=5)
+                              width=400)
+        self.id_entry.pack(fill=ctk.X, pady=5)
         
-        tk.Label(id_frame, 
+        ctk.CTkLabel(id_frame, 
                text="Enter the ID of the item you want to remove", 
                font=("Segoe UI", 9),
-               bg=colors['bg'],
-               fg="#666666").pack(anchor="w")
+               text_color="#666666").pack(anchor="w")
         
         # Count field
-        count_frame = Frame(main_container, bg=colors['bg'], pady=15)
-        count_frame.pack(fill=tk.X)
+        count_frame = ctk.CTkFrame(main_container, fg_color=colors['bg'])
+        count_frame.pack(fill=ctk.X, pady=15)
         
-        tk.Label(count_frame, 
+        ctk.CTkLabel(count_frame, 
                text="Quantity", 
                font=("Segoe UI", 11, "bold"),
-               bg=colors['bg'],
-               fg=colors['text']).pack(anchor="w")
+               text_color=colors['text']).pack(anchor="w")
         
-        self.count_entry = tk.Entry(count_frame, 
+        self.count_entry = ctk.CTkEntry(count_frame, 
                                  font=("Segoe UI", 11),
-                                 width=40,
-                                 relief=tk.SOLID,
-                                 bd=1)
-        self.count_entry.pack(fill=tk.X, pady=5)
+                                 width=400)
+        self.count_entry.pack(fill=ctk.X, pady=5)
         
-        tk.Label(count_frame, 
+        ctk.CTkLabel(count_frame, 
                text="Enter the number of items to remove", 
                font=("Segoe UI", 9),
-               bg=colors['bg'],
-               fg="#666666").pack(anchor="w")
+               text_color="#666666").pack(anchor="w")
         
         # Warning message
-        warning_frame = Frame(main_container, bg=colors['bg'], pady=15)
-        warning_frame.pack(fill=tk.X)
+        warning_frame = ctk.CTkFrame(main_container, fg_color=colors['bg'])
+        warning_frame.pack(fill=ctk.X, pady=15)
         
-        warning_msg = tk.Label(warning_frame, 
-                            text="Warning: This action cannot be undone.", 
-                            font=("Segoe UI", 10, "italic"),
-                            bg=colors['bg'],
-                            fg=colors['warning'])
-        warning_msg.pack(anchor="w")
+        ctk.CTkLabel(warning_frame, 
+               text="Warning: This action cannot be undone.", 
+               font=("Segoe UI", 10, "italic"),
+               text_color=colors['warning']).pack(anchor="w")
         
         # Buttons container
-        button_frame = Frame(self.window, bg=colors['light_bg'], pady=15)
-        button_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        button_frame = ctk.CTkFrame(self.window, fg_color=colors['light_bg'], corner_radius=0)
+        button_frame.pack(fill=ctk.X, side=ctk.BOTTOM, pady=15)
         
         # Cancel button
-        cancel_btn = tk.Button(button_frame, 
+        cancel_btn = ctk.CTkButton(button_frame, 
                              text="Cancel", 
                              command=self.window.destroy,
                              font=("Segoe UI", 10),
-                             bg="white",
-                             fg=colors['text'],
-                             padx=15,
-                             pady=5,
-                             relief=tk.SOLID,
-                             bd=1)
-        cancel_btn.pack(side=tk.LEFT, padx=20)
+                             fg_color="white",
+                             text_color=colors['text'])
+        cancel_btn.pack(side=ctk.LEFT, padx=20)
         
         # Remove button
-        remove_btn = tk.Button(button_frame, 
+        remove_btn = ctk.CTkButton(button_frame, 
                              text="Remove Item", 
                              command=self.remove_item,
                              font=("Segoe UI", 10, "bold"),
-                             bg=colors['danger'],
-                             fg="white",
-                             padx=15,
-                             pady=5,
-                             relief=tk.FLAT)
-        remove_btn.pack(side=tk.RIGHT, padx=20)
+                             fg_color=colors['danger'],
+                             text_color="white")
+        remove_btn.pack(side=ctk.RIGHT, padx=20)
         
         # Footer with watermark
-        watermark = tk.Label(button_frame, 
-                          text="Made by CodeByte",
-                          font=("Segoe UI", 8, "italic"),
-                          fg="#a0a0a0",
-                          bg=colors['light_bg'])
-        watermark.pack(side=tk.BOTTOM, pady=(15, 0))
+        ctk.CTkLabel(button_frame, 
+               text="Made by CodeByte",
+               font=("Segoe UI", 8, "italic"),
+               text_color="#a0a0a0").pack(side=ctk.BOTTOM, pady=(15, 0))
         
     def remove_item(self):
         # Get values

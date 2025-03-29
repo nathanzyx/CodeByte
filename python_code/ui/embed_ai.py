@@ -1,9 +1,8 @@
-import tkinter as tk
-from tkinter import ttk, Frame, Text, Scrollbar
+import customtkinter as ctk
 
 #
-# Embed Inventory Table Class is initialized with a function that returns a dataframe
-# This class is embeds a table in a UI window
+# Embed AI Class is initialized with a llama instance and a parent frame
+# This class embeds an AI chat interface in a UI window
 #
 class EmbedAI:
     def __init__(self, llama, parent, modify_callback = None):
@@ -22,67 +21,65 @@ class EmbedAI:
         
         self.setup_ui()
         
-        
-    def setup_ui(self):
-        
-        self.setup_ui()
-        
     def setup_ui(self):
         # Create header frame inside the parent
-        header_frame = Frame(self.llama_frame, bg=self.colors['primary'], padx=20, pady=15)
-        header_frame.pack(fill=tk.X)
+        header_frame = ctk.CTkFrame(self.llama_frame, fg_color=self.colors['primary'], corner_radius=0)
+        header_frame.pack(fill=ctk.X, padx=20, pady=15)
         
-        header_label = tk.Label(header_frame, text="Database Assistant", font=("Segoe UI", 15, "bold"), bg=self.colors['primary'], fg="white")
+        header_label = ctk.CTkLabel(header_frame, 
+                                   text="Database Assistant", 
+                                   font=("Segoe UI", 15, "bold"), 
+                                   text_color="white")
         header_label.pack(anchor="w")
         
         # Main container for the chat (This holds the Chat, The text box, and the send button)
-        container = Frame(self.llama_frame, bg="white", padx=20, pady=20)
-        container.pack(fill=tk.BOTH, expand=True)
+        container = ctk.CTkFrame(self.llama_frame, fg_color="white", corner_radius=0)
+        container.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
 
         # Message entry frame
-        message_frame = Frame(container, bg=self.colors["bg"], relief="flat")
-        message_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
+        message_frame = ctk.CTkFrame(container, fg_color=self.colors["bg"], corner_radius=0)
+        message_frame.pack(side=ctk.BOTTOM, fill=ctk.X, padx=10, pady=10)
 
-        self.message_entry = tk.Entry(message_frame, font=("Segoe UI", 12), width=50)
-        self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        self.message_entry = ctk.CTkEntry(message_frame, font=("Segoe UI", 12), width=50)
+        self.message_entry.pack(side=ctk.LEFT, fill=ctk.X, expand=True, padx=(0, 10))
 
-        submit_button = tk.Button(message_frame, text="Send", command=self.submit_message, font=("Segoe UI", 12), relief="flat", bg=self.colors['primary'], fg="white")
-        submit_button.pack(side=tk.RIGHT)
+        submit_button = ctk.CTkButton(message_frame, 
+                                    text="Send", 
+                                    command=self.submit_message, 
+                                    font=("Segoe UI", 12), 
+                                    fg_color=self.colors['primary'], 
+                                    text_color="white",
+                                    corner_radius=4)
+        submit_button.pack(side=ctk.RIGHT)
 
         # Chat history text widget
-        self.chat_history = Text(container, wrap=tk.WORD, state=tk.DISABLED, bg=self.colors['light_bg'], fg=self.colors['text'], relief="flat", font=("Segoe UI", 12))
-        self.chat_history.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=(10,0))
-        self.chat_history.config(height=15)  # This sets a fixed height for the chat history
+        self.chat_history = ctk.CTkTextbox(container, 
+                                         wrap="word",
+                                         fg_color=self.colors['light_bg'],
+                                         text_color=self.colors['text'],
+                                         font=("Segoe UI", 12),
+                                         corner_radius=4)
+        self.chat_history.pack(side=ctk.TOP, fill=ctk.BOTH, expand=True, padx=10, pady=(10,0))
+        self.chat_history.configure(height=15)  # This sets a fixed height for the chat history
+        self.chat_history.configure(state="disabled")  # Make it read-only initially
         
     def submit_message(self):
         user_message = self.message_entry.get()
         if user_message.strip():
             self.update_chat("User", user_message)
-            self.message_entry.delete(0, tk.END)
+            self.message_entry.delete(0, 'end')
             
             # Get AI's response
             ai_response = self.llama.make_Query(user_message)
             self.update_chat("AI", ai_response)
         
     def update_chat(self, sender, message):
-        self.chat_history.config(state=tk.NORMAL)
-        self.chat_history.insert(tk.END, f"{sender}: {message}\n")
-        self.chat_history.config(state=tk.DISABLED)
-        self.chat_history.see(tk.END)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        self.chat_history.configure(state="normal")
+        self.chat_history.insert("end", f"{sender}: {message}\n")
+        self.chat_history.configure(state="disabled")
+        self.chat_history.see("end")
+
+    
     #     # Set modern style for the treeview
     #     style = ttk.Style()
     #     style.theme_use("clam")
