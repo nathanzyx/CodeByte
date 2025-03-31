@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdi
                             QPushButton, QFrame, QMessageBox, QScrollArea, QWidget,
                             QGridLayout, QTextEdit)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QRegularExpressionValidator
+from PyQt6.QtCore import QRegularExpression
 
 class AddItemView(QWidget):  # Changed from QDialog to QWidget
     def __init__(self, parent, logic, inventory_system):
@@ -108,6 +109,28 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             'Quantity': (3, 0),
         }
         
+        # Define validation patterns for each field
+        validation_patterns = {
+            'ID': '^[a-zA-Z0-9]+$',  # Only letters and numbers
+            'Name': '',  # Any text is valid
+            'Brand': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
+            'Category': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
+            'Description': '',  # Any text is valid
+            'Price': '^[0-9]+(\.[0-9]{1,2})?$',  # Numbers with optional decimal point
+            'Quantity': '^[0-9]+$',  # Only whole numbers
+        }
+        
+        # Define placeholder text for each field
+        placeholder_texts = {
+            'ID': "Enter product ID (letters & numbers only)",
+            'Name': "Enter product name",
+            'Brand': "Enter brand name (letters & numbers only)",
+            'Category': "Enter category (letters & numbers only)",
+            'Description': "Enter product description",
+            'Price': "0.00",
+            'Quantity': "0",
+        }
+        
         # Create form fields based on the layout in the image
         for field_name, position in field_positions.items():
             row, col = position
@@ -131,21 +154,23 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             label_layout.addWidget(field_label)
             label_layout.addStretch()
             
-            # Remove the required indicator for all fields
-            # (previously had a condition for Description)
-            
             field_layout.addWidget(label_container)
             
             # Input field
             if field_name == "Description":
                 entry = QTextEdit()
-                entry.setPlaceholderText("Input text")
+                entry.setPlaceholderText(placeholder_texts[field_name])
                 entry.setFixedHeight(100)
             elif field_name == "Quantity":
-                # Simplified quantity field - just a regular input
                 entry = QLineEdit()
-                entry.setPlaceholderText("Enter quantity")
-                entry.setMinimumWidth(200)  # Ensure consistent width
+                entry.setPlaceholderText(placeholder_texts[field_name])
+                entry.setMinimumWidth(200)
+                
+                # Add validator for quantity (integers only)
+                if validation_patterns[field_name]:
+                    validator = QRegularExpressionValidator(QRegularExpression(validation_patterns[field_name]))
+                    entry.setValidator(validator)
+                    
                 entry.setStyleSheet("""
                     QLineEdit {
                         border: 1px solid #e5e7eb;
@@ -157,13 +182,22 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
                 """)
             elif field_name == "Price":
                 entry = QLineEdit()
-                entry.setPlaceholderText("$0.00")  # Price placeholder
-                # Make sure price field has the same width as other fields
+                entry.setPlaceholderText(placeholder_texts[field_name])
                 entry.setMinimumWidth(200)
+                
+                # Add validator for price (numbers with optional decimal)
+                if validation_patterns[field_name]:
+                    validator = QRegularExpressionValidator(QRegularExpression(validation_patterns[field_name]))
+                    entry.setValidator(validator)
             else:
                 entry = QLineEdit()
-                entry.setPlaceholderText("Input text")
-                entry.setMinimumWidth(200)  # Ensure consistent width
+                entry.setPlaceholderText(placeholder_texts[field_name])
+                entry.setMinimumWidth(200)
+                
+                # Add validators for other fields
+                if validation_patterns[field_name]:
+                    validator = QRegularExpressionValidator(QRegularExpression(validation_patterns[field_name]))
+                    entry.setValidator(validator)
             
             # Style the input fields with dark theme
             if isinstance(entry, QLineEdit):
@@ -203,9 +237,13 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             # Store references for validation
             validation_type = 'text'
             if field_name == 'Price':
-                validation_type = 'price'
+                validation_type = 'float'
+            elif field_name == 'Quantity':
+                validation_type = 'int'
             elif field_name == 'ID':
-                validation_type = 'id'
+                validation_type = 'alphanumeric'
+            elif field_name == 'Brand' or field_name == 'Category':
+                validation_type = 'alphanumeric_space'
                 
             self.entries[field_name] = (entry, validation_type, field_name != "Description")
             self.message_labels[field_name] = message_label
@@ -484,19 +522,10 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         validation_passed = True
         product_data = {}
         
-        # Fix validation issue by passing self.logic.validate_input directly
-        validation_passed = True
-        product_data = {}
-        
-        # Debug: Print all entries before processing
-        print("All entries to process:", list(self.entries.keys()))
-        
         # Get the exact field names from the database to preserve case
         self.inventory_system.cursor.execute(f"SELECT field_name, required FROM {self.inventory_system.fields_table}")
         db_field_info = {row[0]: bool(row[1]) for row in self.inventory_system.cursor.fetchall()}
         db_field_names_map = {name.lower(): name for name in db_field_info.keys()}
-        
-        print(f"Database field names with required status: {db_field_info}")
         
         for label, (entry, validation_type, is_required) in self.entries.items():
             # Get the value depending on entry type
@@ -511,31 +540,55 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             # Get the required status directly from the database
             is_required = db_field_info.get(db_field_name, False)
                 
-            # Debug: Print each field's value
-            print(f"Processing field '{label}': value='{value}', type='{validation_type}', required={is_required}")
-                
             # Check if required field is empty
             if is_required and not value.strip():
                 validation_passed = False
                 self.message_labels[label].setText(f"{label} is required")
                 self.message_labels[label].setStyleSheet("color: #ef4444;")  # Red error text
-                print(f"Required field '{label}' is empty")
                 continue
                 
-            # Validate using the validation method from logic
-            if not self.logic.validate_input(value, validation_type, is_required, label, self.message_labels):
+            # Add custom field validations based on field type
+            valid = True
+            error_msg = ""
+            
+            if value.strip():  # Only validate if there's input
+                if validation_type == 'alphanumeric':
+                    if not value.strip().isalnum():
+                        valid = False
+                        error_msg = f"{label} must contain only letters and numbers"
+                elif validation_type == 'alphanumeric_space':
+                    if not all(c.isalnum() or c.isspace() for c in value):
+                        valid = False
+                        error_msg = f"{label} must contain only letters, numbers and spaces"
+                elif validation_type == 'int':
+                    try:
+                        int(value)
+                    except ValueError:
+                        valid = False
+                        error_msg = f"{label} must be a whole number"
+                elif validation_type == 'float':
+                    try:
+                        float(value)
+                        # Check for proper decimal format
+                        if '.' in value:
+                            integer_part, decimal_part = value.split('.')
+                            if not integer_part.isdigit() or not decimal_part.isdigit():
+                                valid = False
+                                error_msg = f"{label} must be a number with valid decimal"
+                    except ValueError:
+                        valid = False
+                        error_msg = f"{label} must be a valid number"
+            
+            if not valid:
                 validation_passed = False
-                print(f"Validation failed for field '{label}'")
+                self.message_labels[label].setText(error_msg)
+                self.message_labels[label].setStyleSheet("color: #ef4444;")  # Red error text
             else:
                 # Use the exact field name from the database
                 product_data[db_field_name] = value
         
         if not validation_passed:
-            print("Validation failed, not submitting to database")
             return
-        
-        # Debug: Print the final product data
-        print("Final product data to be added:", product_data)
         
         try:
             # Make sure all required fields are present (case-insensitive check)
@@ -544,7 +597,6 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             missing_fields = [field for field in required_fields if field not in product_data_lower]
             
             if missing_fields:
-                print(f"Missing required fields: {missing_fields}")
                 QMessageBox.warning(self, "Missing Fields", f"The following required fields are missing: {', '.join(missing_fields)}")
                 return
             
@@ -552,7 +604,6 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
             success = self.inventory_system.add_item_to_database(product_data)
             
             if success is False:  # Explicitly check for False, not None or other falsy values
-                print("Database system returned False, item not added")
                 QMessageBox.warning(self, "Error", "Failed to add item to database.")
                 return
                 
@@ -577,5 +628,4 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
                 parent.stacked_widget.setCurrentWidget(parent.inventory_view)  # Go directly to inventory view
                 
         except Exception as e:
-            print(f"Exception when adding item: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to add item: {str(e)}")

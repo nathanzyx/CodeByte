@@ -2,8 +2,8 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFr
                             QPushButton, QLineEdit, QGridLayout, QTableWidget, QTableWidgetItem, 
                             QHeaderView, QMessageBox, QDialog, QFormLayout, QListWidget, 
                             QListWidgetItem, QCheckBox, QScrollArea, QComboBox, QSizePolicy)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon, QColor
+from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtGui import QFont, QIcon, QColor, QRegularExpressionValidator
 import pandas as pd
 import re
 
@@ -384,6 +384,18 @@ class InventoryView(QMainWindow):
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
         entries = {}
+        message_labels = {}  # For validation error messages
+        
+        # Define validation patterns for each field type
+        validation_patterns = {
+            'id': '^[a-zA-Z0-9]+$',  # Only letters and numbers
+            'name': '',  # Any text is valid
+            'brand': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
+            'category': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
+            'description': '',  # Any text is valid
+            'price': '^[0-9]+(\.[0-9]{1,2})?$',  # Numbers with optional decimal point
+            'quantity': '^[0-9]+$',  # Only whole numbers
+        }
 
         for idx, col in enumerate(columns):
             label = QLabel(col.capitalize())
@@ -392,9 +404,21 @@ class InventoryView(QMainWindow):
             entry = QLineEdit()
             entry.setFont(QFont("Segoe UI", 12))
             entry.setText(str(item_data[idx]))
+            
+            # Apply field-specific validators
+            col_lower = col.lower()
+            if col_lower in validation_patterns and validation_patterns[col_lower]:
+                validator = QRegularExpressionValidator(QRegularExpression(validation_patterns[col_lower]))
+                entry.setValidator(validator)
 
             form_layout.addRow(label, entry)
             entries[col] = entry
+            
+            # Add error message label below each entry
+            error_label = QLabel("")
+            error_label.setStyleSheet("color: #ef4444; font-weight: normal; font-size: 10px;")
+            form_layout.addRow("", error_label)
+            message_labels[col] = error_label
 
         dialog_layout.addLayout(form_layout)
 
@@ -412,7 +436,7 @@ class InventoryView(QMainWindow):
         
         save_btn = QPushButton("Save Changes")
         save_btn.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        save_btn.clicked.connect(lambda: self.save_changes(mod_dialog, columns, entries, item_data))
+        save_btn.clicked.connect(lambda: self.save_changes(mod_dialog, columns, entries, item_data, message_labels))
         
         button_layout.addWidget(cancel_btn)
         button_layout.addWidget(save_btn)
@@ -430,18 +454,93 @@ class InventoryView(QMainWindow):
         else:
             self.filter_button.setText("Show Filters")
 
-    def save_changes(self, dialog, columns, entries, item_data):
-        new_data = {col: entries[col].text() for col in columns}
+    def save_changes(self, dialog, columns, entries, item_data, message_labels):
+        # Clear previous error messages
+        for label in message_labels.values():
+            label.setText("")
+            
+        validation_passed = True
+        new_data = {}
         original_id = item_data[0]
-        new_id = new_data['id']
+        
+        # Define validation types for each field
+        validation_types = {
+            'id': 'alphanumeric',
+            'name': 'text',
+            'brand': 'alphanumeric_space',
+            'category': 'alphanumeric_space',
+            'description': 'text',
+            'price': 'float',
+            'quantity': 'int'
+        }
+        
+        # First, validate all inputs
+        for col in columns:
+            col_lower = col.lower()
+            value = entries[col].text().strip()
+            
+            # Required fields check - ID, Name, Price, Quantity are essential
+            is_required = col_lower in ['id', 'name', 'price', 'quantity']
+            if is_required and not value:
+                validation_passed = False
+                message_labels[col].setText(f"{col} is required")
+                continue
+            
+            # Skip validation for empty non-required fields
+            if not is_required and not value:
+                continue
+            
+            # Get validation type for this field
+            validation_type = validation_types.get(col_lower, 'text')
+            
+            # Perform validation based on field type
+            valid = True
+            error_msg = ""
+            
+            if validation_type == 'alphanumeric':
+                if not value.isalnum():
+                    valid = False
+                    error_msg = f"{col} must contain only letters and numbers"
+            elif validation_type == 'alphanumeric_space':
+                if not all(c.isalnum() or c.isspace() for c in value):
+                    valid = False
+                    error_msg = f"{col} must contain only letters, numbers and spaces"
+            elif validation_type == 'int':
+                try:
+                    int(value)
+                except ValueError:
+                    valid = False
+                    error_msg = f"{col} must be a whole number"
+            elif validation_type == 'float':
+                try:
+                    float(value)
+                    # Check for proper decimal format
+                    if '.' in value:
+                        integer_part, decimal_part = value.split('.')
+                        if not integer_part.isdigit() or not decimal_part.isdigit():
+                            valid = False
+                            error_msg = f"{col} must be a number with valid decimal"
+                except ValueError:
+                    valid = False
+                    error_msg = f"{col} must be a valid number"
+            
+            if not valid:
+                validation_passed = False
+                message_labels[col].setText(error_msg)
+            else:
+                new_data[col] = value
+        
+        if not validation_passed:
+            return
         
         # Check if trying to change ID to an existing one (except itself)
-        if new_id != original_id:
+        new_id = new_data.get('id')
+        if new_id and new_id != original_id:
             all_items = self.inventory_system.get_all_items()
             if new_id in all_items['id'].values:
-                QMessageBox.critical(self, "Error", "This ID already exists. Please choose a different ID.")
+                message_labels['id'].setText("This ID already exists. Please choose a different ID.")
                 return
-    
+        
         success = self.inventory_system.update_item(original_id, new_data)
         if success:
             dialog.accept()
