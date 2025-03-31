@@ -2,9 +2,8 @@ import requests
 # Install requests from the VScode terminal with: "pip install requests"
 
 # Import UI code
-from ui.search_view_edit import SearchViewEdit
+# from ui.search_view_edit import SearchViewEdit
 from ui.login_view import LoginView
-from ui.display_default import DisplayDefault
 from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
@@ -19,14 +18,12 @@ class AI:
         # ----------------------------------------
         
     def make_Query(self, user_query):
-        
         # Construct the API request payload
         payload = {
             "contents": [{
                 "parts": [
-                    {"text": "You are a database assistant. You will be provided the current database in JSON format. "
-                             "The user may ask questions related to the inventory database, and you are responsible for answering "
-                             "and, if needed, suggesting actions to update the inventory."},
+                    {"text": "You are a database assistant. Answer the user's questions based on the provided database snapshot."
+                    "dont answer any question about the fields"},
                     {"text": str(user_query)},
                     {"text": f"Database snapshot:\n{self.get_database_json()}"}
                 ]

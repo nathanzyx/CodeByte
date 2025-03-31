@@ -1,6 +1,4 @@
 import pandas as pd
-import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk, Frame
 from datetime import datetime
 from database.DatabaseSystem import *
 from ui.ui import *
@@ -17,10 +15,11 @@ def main():
     
     # Create UI instance and set it in the database system
     ui = UI(database)
-    database.set_ui(ui)
+    database.set_ui(ui) 
     
     # Display Menu for database instance
     ui.display_menu()
+    ui.run()
 
 if __name__ == "__main__":
     main()

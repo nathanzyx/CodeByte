@@ -1,368 +1,684 @@
-import customtkinter as ctk
-from tkinter import messagebox
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+                            QPushButton, QFrame, QMessageBox, QScrollArea,
+                            QStackedWidget)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
-class ManageFieldsView:
+class ManageFieldsView(QWidget):  # Changed from QDialog to QWidget
     def __init__(self, parent, logic, inventory_system):
-        self.window = ctk.CTkToplevel(parent)
-        self.window.title("Manage Fields")
-        self.window.geometry("500x700")
+        super().__init__(parent)
         self.logic = logic
         self.inventory_system = inventory_system
-        self.setup_ui()
-        
-    def setup_ui(self):
-        # Colors
-        colors = {
-            'primary': '#363062',
-            'secondary': '#363062',
-            'success': '#4F959D',
-            'danger': '#f44336',
-            'bg': '#ffffff',
-            'text': '#2c3e50',
-            'light_bg': '#f5f7fa'
+        # Define colors as an instance attribute so it's accessible in all methods
+        self.colors = {
+            'primary': '#111827',     # Dark background
+            'container_bg': '#1F2937', # Dark container background
+            'input_bg': '#111827',    # Dark input background
+            'text': '#E5E7EB',        # Light text for dark background
+            'text_light': '#F9FAFB',  # Light text for dark backgrounds
+            'accent': '#3B82F6',      # Blue accent
+            'danger': '#ef4444',      # Error/danger red
+            'warning': '#f59e0b',     # Warning orange
+            'border': '#374151',      # Dark border
+            'placeholder': '#9ca3af', # Placeholder text
         }
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Create a background frame that fills the entire widget
+        background_frame = QFrame(self)
+        background_frame.setStyleSheet("background-color: #1e1e1e;")
+        background_frame.setGeometry(0, 0, self.width(), self.height())
+        background_frame.setAutoFillBackground(True)
         
-        # Header
-        header = ctk.CTkFrame(self.window, fg_color=colors['secondary'], corner_radius=0)
-        header.pack(fill=ctk.X)
+        # Make sure the background frame stays full size when window resizes
+        self.resizeEvent = lambda event: background_frame.setGeometry(0, 0, self.width(), self.height())
         
-        ctk.CTkLabel(header, 
-               text="Manage Database Fields", 
-               font=("Segoe UI", 14, "bold"),
-               text_color="white").pack(padx=20, pady=15)
+        # Use self.colors instead of local colors variable
+        colors = self.colors
         
-        # Main container using tabs
-        tab_control = ctk.CTkFrame(self.window, fg_color=colors['bg'], corner_radius=0)
-        tab_control.pack(fill=ctk.BOTH, expand=True)
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
+        
+        # Set the background color for the main widget
+        self.setStyleSheet(f"background-color: {colors['primary']};")
+        
+        # Header section
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: transparent;")
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(0, 0, 0, 10)
+
+        title = QLabel("Database Fields Management")
+        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {colors['text_light']};")
+        header_layout.addWidget(title)
+
+        main_layout.addWidget(header_frame)
+        
+        # Create a main container with dark background and rounded corners
+        main_container = QFrame()
+        main_container.setStyleSheet(f"""
+            background-color: {colors['container_bg']};
+            border-radius: 8px;
+            border: none;
+        """)
+        container_layout = QVBoxLayout(main_container)
+        container_layout.setContentsMargins(30, 30, 30, 30)
+        container_layout.setSpacing(20)
         
         # Tab buttons
-        tab_frame = ctk.CTkFrame(tab_control, fg_color=colors['bg'], corner_radius=0)
-        tab_frame.pack(fill=ctk.X)
+        tab_frame = QFrame()
+        tab_frame.setStyleSheet(f"background-color: transparent;")
+        tab_buttons_layout = QHBoxLayout(tab_frame)
+        tab_buttons_layout.setContentsMargins(0, 0, 0, 20)
+        tab_buttons_layout.setSpacing(10)
         
-        # Tab styling
-        tab_style = {
-            "font": ("Segoe UI", 10),
-            "corner_radius": 0,
-        }
+        # Create stacked widget for tab content
+        self.tab_stack = QStackedWidget()
         
-        # Create references to tabs before using them in functions
-        add_tab = ctk.CTkFrame(tab_control, fg_color=colors['bg'], corner_radius=0)
-        remove_tab = ctk.CTkFrame(tab_control, fg_color=colors['bg'], corner_radius=0)
+        # Tab buttons
+        self.add_btn = QPushButton("Add Field")
+        self.add_btn.setFont(QFont("Segoe UI", 11))
+        self.add_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['accent']};
+                color: white;
+                border-radius: 4px;
+                padding: 10px 20px;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+        """)
+        self.add_btn.clicked.connect(lambda: self.show_tab(0))
         
-        def show_add_tab():
-            add_tab.pack(fill=ctk.BOTH, expand=True, padx=40, pady=30)
-            remove_tab.pack_forget()
-            add_btn.configure(fg_color=colors['primary'], text_color="white")
-            remove_btn.configure(fg_color="#e0e0e0", text_color=colors['text'])
-            
-        def show_remove_tab():
-            remove_tab.pack(fill=ctk.BOTH, expand=True, padx=40, pady=30)
-            add_tab.pack_forget()
-            remove_btn.configure(fg_color=colors['primary'], text_color="white")
-            add_btn.configure(fg_color="#e0e0e0", text_color=colors['text'])
+        self.remove_btn = QPushButton("Remove Field")
+        self.remove_btn.setFont(QFont("Segoe UI", 11))
+        self.remove_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['border']};
+                color: {colors['text']};
+                border-radius: 4px;
+                padding: 10px 20px;
+            }}
+            QPushButton:hover {{
+                background-color: #4B5563;
+            }}
+        """)
+        self.remove_btn.clicked.connect(lambda: self.show_tab(1))
         
-        add_btn = ctk.CTkButton(tab_frame, text="Add Field", command=show_add_tab, 
-                          **tab_style, fg_color=colors['primary'], text_color="white",
-                          width=120, height=36)
-        add_btn.pack(side=ctk.LEFT)
+        tab_buttons_layout.addWidget(self.add_btn)
+        tab_buttons_layout.addWidget(self.remove_btn)
+        tab_buttons_layout.addStretch()
         
-        remove_btn = ctk.CTkButton(tab_frame, text="Remove Field", command=show_remove_tab, 
-                             **tab_style, fg_color="#e0e0e0", text_color=colors['text'],
-                             width=120, height=36)
-        remove_btn.pack(side=ctk.LEFT)
+        container_layout.addWidget(tab_frame)
         
-        # Add Field tab
-        add_tab.pack(fill=ctk.BOTH, expand=True, padx=40, pady=30)
+        # Create tab pages
+        add_tab = QWidget()
+        add_tab.setStyleSheet(f"background-color: transparent;")
+        add_layout = QVBoxLayout(add_tab)
+        add_layout.setContentsMargins(0, 0, 0, 0)
+        add_layout.setSpacing(15)
         
-        # Field name
-        ctk.CTkLabel(add_tab, 
-               text="Field Name", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(0, 5))
+        remove_tab = QWidget()
+        remove_tab.setStyleSheet(f"background-color: transparent;")
+        remove_layout = QVBoxLayout(remove_tab)
+        remove_layout.setContentsMargins(0, 0, 0, 0)
+        remove_layout.setSpacing(15)
         
-        self.field_name_entry = ctk.CTkEntry(add_tab, 
-                                      font=("Segoe UI", 10),
-                                      width=400)
-        self.field_name_entry.pack(fill=ctk.X, pady=(0, 15))
+        # Add tabs to stack
+        self.tab_stack.addWidget(add_tab)
+        self.tab_stack.addWidget(remove_tab)
         
-        # Entry type
-        ctk.CTkLabel(add_tab, 
-               text="Entry Type", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(10, 5))
+        container_layout.addWidget(self.tab_stack)
         
-        self.entry_type = ctk.StringVar()
+        # Add Field Tab Content
+        add_title = QLabel("Field Management")
+        add_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        add_title.setStyleSheet(f"color: {colors['text']};")
+        add_layout.addWidget(add_title)
         
-        entry_frame = ctk.CTkFrame(add_tab, fg_color=colors['bg'], corner_radius=0)
-        entry_frame.pack(fill=ctk.X, pady=(0, 15))
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet(f"background-color: {colors['border']};")
+        separator.setFixedHeight(1)
+        add_layout.addWidget(separator)
         
-        small_box_btn = ctk.CTkButton(entry_frame, 
-                                text="Small Box", 
-                                command=lambda: self.entry_type.set("small_box"),
-                                font=("Segoe UI", 10),
-                                fg_color=colors['light_bg'],
-                                text_color=colors['text'],
-                                corner_radius=4,
-                                height=32,
-                                width=100)
-        small_box_btn.pack(side=ctk.LEFT, padx=(0, 10))
+        # Field name input
+        field_name_container = QFrame()
+        field_name_layout = QVBoxLayout(field_name_container)
+        field_name_layout.setContentsMargins(0, 10, 0, 10)
+        field_name_layout.setSpacing(8)
         
-        large_box_btn = ctk.CTkButton(entry_frame, 
-                                text="Large Box", 
-                                command=lambda: self.entry_type.set("large_box"),
-                                font=("Segoe UI", 10),
-                                fg_color=colors['light_bg'],
-                                text_color=colors['text'],
-                                corner_radius=4,
-                                height=32,
-                                width=100)
-        large_box_btn.pack(side=ctk.LEFT)
+        field_name_label = QLabel("Field Name")
+        field_name_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        field_name_label.setStyleSheet(f"color: {colors['text']};")
+        field_name_layout.addWidget(field_name_label)
         
-        # Validation type
-        ctk.CTkLabel(add_tab, 
-               text="Validation Type", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(10, 5))
+        self.field_name_entry = QLineEdit()
+        self.field_name_entry.setFont(QFont("Segoe UI", 11))
+        self.field_name_entry.setStyleSheet(f"""
+            QLineEdit {{
+                border: 1px solid {colors['border']};
+                border-radius: 4px;
+                padding: 10px;
+                background-color: {colors['input_bg']};
+                color: {colors['text']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {colors['accent']};
+            }}
+        """)
+        self.field_name_entry.setPlaceholderText("Enter field name")
+        field_name_layout.addWidget(self.field_name_entry)
         
-        self.validation_type = ctk.StringVar()
+        field_name_help = QLabel("Enter a unique name for the new field")
+        field_name_help.setFont(QFont("Segoe UI", 9))
+        field_name_help.setStyleSheet(f"color: {colors['placeholder']};")
+        field_name_layout.addWidget(field_name_help)
         
-        validation_frame = ctk.CTkFrame(add_tab, fg_color=colors['bg'], corner_radius=0)
-        validation_frame.pack(fill=ctk.X, pady=(0, 15))
+        add_layout.addWidget(field_name_container)
         
-        string_btn = ctk.CTkButton(validation_frame, 
-                             text="String", 
-                             command=lambda: self.validation_type.set("string"),
-                             font=("Segoe UI", 10),
-                             fg_color=colors['light_bg'],
-                             text_color=colors['text'],
-                             corner_radius=4,
-                             height=32,
-                             width=80)
-        string_btn.pack(side=ctk.LEFT, padx=(0, 10))
+        # Set default entry type since we removed the selection UI
+        self.entry_type = "text_box_s"
         
-        int_btn = ctk.CTkButton(validation_frame, 
-                          text="Integer", 
-                          command=lambda: self.validation_type.set("int"),
-                          font=("Segoe UI", 10),
-                          fg_color=colors['light_bg'],
-                          text_color=colors['text'],
-                          corner_radius=4,
-                          height=32,
-                          width=80)
-        int_btn.pack(side=ctk.LEFT, padx=(0, 10))
+        # Validation Type Selection
+        validation_type_container = QFrame()
+        validation_type_layout = QVBoxLayout(validation_type_container)
+        validation_type_layout.setContentsMargins(0, 10, 0, 10)
+        validation_type_layout.setSpacing(8)
         
-        float_btn = ctk.CTkButton(validation_frame, 
-                            text="Decimal", 
-                            command=lambda: self.validation_type.set("float"),
-                            font=("Segoe UI", 10),
-                            fg_color=colors['light_bg'],
-                            text_color=colors['text'],
-                            corner_radius=4,
-                            height=32,
-                            width=80)
-        float_btn.pack(side=ctk.LEFT)
+        validation_type_label = QLabel("Validation Type")
+        validation_type_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        validation_type_label.setStyleSheet(f"color: {colors['text']};")
+        validation_type_layout.addWidget(validation_type_label)
         
-        # Required
-        ctk.CTkLabel(add_tab, 
-               text="Is Required", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(10, 5))
+        validation_type_buttons = QFrame()
+        validation_type_buttons_layout = QHBoxLayout(validation_type_buttons)
+        validation_type_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        validation_type_buttons_layout.setSpacing(10)
         
-        self.required = ctk.StringVar()
+        self.validation_type = "string"
+        self.validation_buttons = []
         
-        required_frame = ctk.CTkFrame(add_tab, fg_color=colors['bg'], corner_radius=0)
-        required_frame.pack(fill=ctk.X, pady=(0, 15))
+        string_btn = QPushButton("String")
+        string_btn.setFont(QFont("Segoe UI", 11))
+        string_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['accent']};
+                color: white;
+                border-radius: 4px;
+                padding: 10px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+        """)
+        string_btn.clicked.connect(lambda: self.set_validation_type("string"))
+        self.validation_buttons.append(string_btn)
         
-        required_btn = ctk.CTkButton(required_frame, 
-                              text="Required", 
-                              command=lambda: self.required.set("1"),
-                              font=("Segoe UI", 10),
-                              fg_color=colors['light_bg'],
-                              text_color=colors['text'],
-                              corner_radius=4,
-                              height=32,
-                              width=100)
-        required_btn.pack(side=ctk.LEFT, padx=(0, 10))
+        int_btn = QPushButton("Integer")
+        int_btn.setFont(QFont("Segoe UI", 11))
+        int_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['border']};
+                color: {colors['text']};
+                border-radius: 4px;
+                padding: 10px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #4B5563;
+            }}
+        """)
+        int_btn.clicked.connect(lambda: self.set_validation_type("int"))
+        self.validation_buttons.append(int_btn)
         
-        not_required_btn = ctk.CTkButton(required_frame, 
-                                  text="Not Required", 
-                                  command=lambda: self.required.set("0"),
-                                  font=("Segoe UI", 10),
-                                  fg_color=colors['light_bg'],
-                                  text_color=colors['text'],
-                                  corner_radius=4,
-                                  height=32,
-                                  width=100)
-        not_required_btn.pack(side=ctk.LEFT)
+        float_btn = QPushButton("Decimal")
+        float_btn.setFont(QFont("Segoe UI", 11))
+        float_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['border']};
+                color: {colors['text']};
+                border-radius: 4px;
+                padding: 10px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #4B5563;
+            }}
+        """)
+        float_btn.clicked.connect(lambda: self.set_validation_type("float"))
+        self.validation_buttons.append(float_btn)
+        validation_type_buttons_layout.addWidget(string_btn)
+        validation_type_buttons_layout.addWidget(int_btn)
+        validation_type_buttons_layout.addWidget(float_btn)
+        validation_type_buttons_layout.addStretch()
         
-        # Add Field button
-        add_field_btn = ctk.CTkButton(add_tab, 
-                                text="Add Field", 
-                                command=self.add_field,
-                                font=("Segoe UI", 10, "bold"),
-                                fg_color=colors['success'],
-                                text_color="white",
-                                height=36,
-                                width=120,
-                                corner_radius=4)
-        add_field_btn.pack(pady=20)
+        validation_type_layout.addWidget(validation_type_buttons)
         
-        # Remove Field tab
-        # Note: don't pack it here, it will be packed by the tab switch function
+        validation_type_help = QLabel("Select the validation type for the field")
+        validation_type_help.setFont(QFont("Segoe UI", 9))
+        validation_type_help.setStyleSheet(f"color: {colors['placeholder']};")
+        validation_type_layout.addWidget(validation_type_help)
         
-        # Get existing fields
-        existing_fields = self.logic.get_existing_fields()
+        add_layout.addWidget(validation_type_container)
         
-        # Define built-in fields that cannot be removed
-        built_in_fields = {
-            "brand": "Product manufacturer or brand name",
-            "category": "Product category classification",
-            "description": "Detailed product description",
-            "id": "Unique product identifier",
-            "name": "Product display name",
-            "price": "Product retail price",
-            "quantity": "Available inventory count"
-        }
+        # Required Selection
+        required_container = QFrame()
+        required_layout = QVBoxLayout(required_container)
+        required_layout.setContentsMargins(0, 10, 0, 10)
+        required_layout.setSpacing(8)
         
-        # Display field list
-        ctk.CTkLabel(remove_tab, 
-               text="Existing Fields", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(0, 10))
+        required_label = QLabel("Required Field")
+        required_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        required_label.setStyleSheet(f"color: {colors['text']};")
+        required_layout.addWidget(required_label)
         
-        # Create a container for the scrollable area
-        fields_container = ctk.CTkFrame(remove_tab, fg_color=colors['bg'], corner_radius=0)
-        fields_container.pack(fill=ctk.BOTH, expand=True, pady=(0, 20))
+        required_buttons = QFrame()
+        required_buttons_layout = QHBoxLayout(required_buttons)
+        required_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        required_buttons_layout.setSpacing(10)
         
-        # Use CTkScrollableFrame instead of canvas+scrollbar setup
-        scrollable_frame = ctk.CTkScrollableFrame(fields_container, 
-                                                 fg_color="#f0f2f5", 
-                                                 corner_radius=4)
-        scrollable_frame.pack(fill=ctk.BOTH, expand=True)
+        self.required = "1"
+        self.required_buttons = []
         
-        if existing_fields:
-            # First show built-in fields with descriptions
-            system_label = ctk.CTkLabel(scrollable_frame, 
-                   text="System Fields (Cannot be removed):", 
-                   font=("Segoe UI", 10, "bold"),
-                   text_color=colors['secondary'])
-            system_label.pack(fill=ctk.X, padx=5, pady=3, anchor="w")
-                   
-            for field in existing_fields:
-                if field in built_in_fields:
-                    field_frame = ctk.CTkFrame(scrollable_frame, fg_color="#f0f2f5", corner_radius=0)
-                    field_frame.pack(fill=ctk.X, pady=2)
-                    
-                    ctk.CTkLabel(field_frame, 
-                           text=f"• {field}", 
-                           font=("Segoe UI", 10, "bold"),
-                           text_color=colors['text'],
-                           width=120).pack(side=ctk.LEFT, padx=5)
-                           
-                    ctk.CTkLabel(field_frame, 
-                           text=f"{built_in_fields[field]}", 
-                           font=("Segoe UI", 9),
-                           text_color="#666").pack(side=ctk.LEFT, fill=ctk.X, padx=5)
-            
-            # Then show custom fields
-            custom_fields = [field for field in existing_fields if field not in built_in_fields]
-            
-            if custom_fields:
-                custom_label = ctk.CTkLabel(scrollable_frame, 
-                       text="Custom Fields:", 
-                       font=("Segoe UI", 10, "bold"),
-                       text_color=colors['secondary'])
-                custom_label.pack(fill=ctk.X, padx=5, pady=10, anchor="w")
-                       
-                for field in custom_fields:
-                    ctk.CTkLabel(scrollable_frame, 
-                           text=f"• {field}", 
-                           font=("Segoe UI", 10),
-                           text_color=colors['text']).pack(fill=ctk.X, padx=5, pady=3, anchor="w")
+        yes_btn = QPushButton("Yes")
+        yes_btn.setFont(QFont("Segoe UI", 11))
+        yes_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['accent']};
+                color: white;
+                border-radius: 4px;
+                padding: 10px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+        """)
+        yes_btn.clicked.connect(lambda: self.set_required("1"))
+        self.required_buttons.append(yes_btn)
+        
+        no_btn = QPushButton("No")
+        no_btn.setFont(QFont("Segoe UI", 11))
+        no_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['border']};
+                color: {colors['text']};
+                border-radius: 4px;
+                padding: 10px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #4B5563;
+            }}
+        """)
+        no_btn.clicked.connect(lambda: self.set_required("0"))
+        self.required_buttons.append(no_btn)
+        required_buttons_layout.addWidget(yes_btn)
+        required_buttons_layout.addWidget(no_btn)
+        required_buttons_layout.addStretch()
+        
+        required_layout.addWidget(required_buttons)
+        
+        required_help = QLabel("Specify if this field is required")
+        required_help.setFont(QFont("Segoe UI", 9))
+        required_help.setStyleSheet(f"color: {colors['placeholder']};")
+        required_layout.addWidget(required_help)
+        
+        add_layout.addWidget(required_container)
+        
+        # Add spacer
+        add_layout.addStretch()
+        
+        # Add button
+        add_field_btn = QPushButton("Add Field")
+        add_field_btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        add_field_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['accent']};
+                color: white;
+                border-radius: 4px;
+                padding: 12px 0;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+        """)
+        add_field_btn.clicked.connect(self.add_field)
+        add_layout.addWidget(add_field_btn)
+        
+        # Remove Field Tab Content
+        remove_title = QLabel("Remove Field")
+        remove_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        remove_title.setStyleSheet(f"color: {colors['text']};")
+        remove_layout.addWidget(remove_title)
+        
+        # Separator for remove tab
+        remove_separator = QFrame()
+        remove_separator.setFrameShape(QFrame.Shape.HLine)
+        remove_separator.setStyleSheet(f"background-color: {colors['border']};")
+        remove_separator.setFixedHeight(1)
+        remove_layout.addWidget(remove_separator)
+        
+        # Field name input for removal
+        remove_field_container = QFrame()
+        remove_field_layout = QVBoxLayout(remove_field_container)
+        remove_field_layout.setContentsMargins(0, 10, 0, 10)
+        remove_field_layout.setSpacing(8)
+        
+        remove_field_label = QLabel("Field Name")
+        remove_field_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        remove_field_label.setStyleSheet(f"color: {colors['text']};")
+        remove_field_layout.addWidget(remove_field_label)
+        
+        self.remove_field_entry = QLineEdit()
+        self.remove_field_entry.setFont(QFont("Segoe UI", 11))
+        self.remove_field_entry.setStyleSheet(f"""
+            QLineEdit {{
+                border: 1px solid {colors['border']};
+                border-radius: 4px;
+                padding: 10px;
+                background-color: {colors['input_bg']};
+                color: {colors['text']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {colors['accent']};
+            }}
+        """)
+        self.remove_field_entry.setPlaceholderText("Enter field name to remove")
+        remove_field_layout.addWidget(self.remove_field_entry)
+        
+        remove_field_help = QLabel("Enter the name of the field you want to remove")
+        remove_field_help.setFont(QFont("Segoe UI", 9))
+        remove_field_help.setStyleSheet(f"color: {colors['placeholder']};")
+        remove_field_layout.addWidget(remove_field_help)
+        
+        remove_layout.addWidget(remove_field_container)
+        
+        # Warning message
+        warning_container = QFrame()
+        warning_container.setStyleSheet(f"""
+            background-color: #fff8e6;
+            border-radius: 4px;
+        """)
+        warning_layout = QHBoxLayout(warning_container)
+        warning_layout.setContentsMargins(15, 15, 15, 15)
+        warning_layout.setSpacing(10)
+        
+        warning_icon = QLabel("⚠️")
+        warning_icon.setFont(QFont("Segoe UI", 14))
+        warning_icon.setStyleSheet("background-color: transparent;")
+        warning_layout.addWidget(warning_icon, 0, Qt.AlignmentFlag.AlignTop)
+        
+        warning_text = QLabel("This action cannot be undone. All data associated with this field will be permanently deleted.")
+        warning_text.setFont(QFont("Segoe UI", 10))
+        warning_text.setWordWrap(True)
+        warning_text.setStyleSheet("color: #FBBF24; background-color: transparent;")
+        warning_layout.addWidget(warning_text, 1)
+        
+        remove_layout.addWidget(warning_container)
+        
+        # Add spacer
+        remove_layout.addStretch()
+        
+        # Remove button
+        remove_field_btn = QPushButton("Remove Field")
+        remove_field_btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        remove_field_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {colors['danger']};
+                color: white;
+                border-radius: 4px;
+                padding: 12px 0;
+            }}
+            QPushButton:hover {{
+                background-color: #dc2626;
+            }}
+        """)
+        remove_field_btn.clicked.connect(self.remove_field)
+        remove_layout.addWidget(remove_field_btn)
+        
+        main_layout.addWidget(main_container)
+        
+    def show_tab(self, index):
+        self.tab_stack.setCurrentIndex(index)
+        
+        if index == 0:  # Add tab
+            self.add_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors['accent']};
+                    color: white;
+                    border-radius: 4px;
+                    padding: 10px 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: #2563EB;
+                }}
+            """)
+            self.remove_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors['border']};
+                    color: {self.colors['text']};
+                    border-radius: 4px;
+                    padding: 10px 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: #4B5563;
+                }}
+            """)
+        else:  # Remove tab
+            self.remove_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors['accent']};
+                    color: white;
+                    border-radius: 4px;
+                    padding: 10px 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: #2563EB;
+                }}
+            """)
+            self.add_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors['border']};
+                    color: {self.colors['text']};
+                    border-radius: 4px;
+                    padding: 10px 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: #4B5563;
+                }}
+            """)
+    
+    def set_validation_type(self, value):
+        self.validation_type = value
+        
+        # Update button styles to show selection
+        for btn in self.validation_buttons:
+            if (btn.text() == "String" and value == "string") or \
+               (btn.text() == "Integer" and value == "int") or \
+               (btn.text() == "Decimal" and value == "float"):
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {self.colors['accent']};
+                        color: white;
+                        border-radius: 4px;
+                        padding: 10px 15px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #2563EB;
+                    }}
+                """)
             else:
-                ctk.CTkLabel(scrollable_frame, 
-                       text="No custom fields found", 
-                       font=("Segoe UI", 9, "italic"),
-                       text_color="#666").pack(fill=ctk.X, padx=5, pady=3)
-        else:
-            ctk.CTkLabel(scrollable_frame, 
-                   text="No fields found", 
-                   font=("Segoe UI", 10, "italic"),
-                   text_color="#666").pack(pady=10)
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {self.colors['border']};
+                        color: {self.colors['text']};
+                        border-radius: 4px;
+                        padding: 10px 15px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #d1d5db;
+                    }}
+                """)
+    
+    def set_required(self, value):
+        self.required = value
         
-        # Field to remove
-        ctk.CTkLabel(remove_tab, 
-               text="Field Name to Remove", 
-               font=("Segoe UI", 11, "bold"),
-               text_color=colors['text']).pack(anchor="w", pady=(10, 5))
-        
-        self.remove_field_entry = ctk.CTkEntry(remove_tab, 
-                                        font=("Segoe UI", 10),
-                                        width=400)
-        self.remove_field_entry.pack(fill=ctk.X, pady=(0, 5))
-        
-        # Warning
-        ctk.CTkLabel(remove_tab, 
-               text="Warning: Removing a field will delete all associated data", 
-               font=("Segoe UI", 9, "italic"),
-               text_color=colors['danger']).pack(anchor="w", pady=(5, 20))
-        
-        # Remove field button
-        remove_field_btn = ctk.CTkButton(remove_tab, 
-                                  text="Remove Field", 
-                                  command=self.remove_field,
-                                  font=("Segoe UI", 10, "bold"),
-                                  fg_color=colors['danger'],
-                                  text_color="white",
-                                  width=120,
-                                  height=36,
-                                  corner_radius=4)
-        remove_field_btn.pack()
-        
-        # Footer with watermark
-        footer = ctk.CTkFrame(self.window, fg_color=colors['light_bg'], corner_radius=0)
-        footer.pack(fill=ctk.X, side=ctk.BOTTOM)
-        
-        watermark = ctk.CTkLabel(footer, 
-                          text="Made by CodeByte",
-                          font=("Segoe UI", 8, "italic"),
-                          text_color="#a0a0a0")
-        watermark.pack(side=ctk.RIGHT, padx=20, pady=10)
-        
-        # Initialize with add tab shown
-        show_add_tab()
-        
+        # Update button styles to show selection
+        for btn in self.required_buttons:
+            if (btn.text() == "Yes" and value == "1") or (btn.text() == "No" and value == "0"):
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {self.colors['accent']};
+                        color: white;
+                        border-radius: 4px;
+                        padding: 10px 15px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #2563EB;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {self.colors['border']};
+                        color: {self.colors['text']};
+                        border-radius: 4px;
+                        padding: 10px 15px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #d1d5db;
+                    }}
+                """)
+    
     def add_field(self):
-        field_name = self.field_name_entry.get()
-        entry_type_value = self.entry_type.get().strip()
-        validation_type_value = self.validation_type.get().strip()
-        required_value = self.required.get().strip()
-
-        if self.logic.validate_field_specs(field_name, entry_type_value, validation_type_value, required_value):
-            self.inventory_system.add_to_fields_table(field_name, entry_type_value, validation_type_value, int(required_value))
-            messagebox.showinfo("Success", f"Field '{field_name}' added successfully.")
-            self.window.destroy()
-            
-    def remove_field(self):
-        field_name = self.remove_field_entry.get()
-        fields = self.logic.get_existing_fields()
+        field_name = self.field_name_entry.text().strip()
         
+        if not field_name:
+            QMessageBox.warning(self, "Input Error", "Field name cannot be empty.")
+            return
+        
+        # Check if field already exists
+        existing_fields = self.logic.get_existing_fields()
+        if field_name.lower() in [f.lower() for f in existing_fields]:
+            QMessageBox.warning(self, "Input Error", f"Field '{field_name}' already exists.")
+            return
+        
+        # Add the field to the database with validation type and required status
+        try:
+            # Debug information
+            print(f"Adding field: {field_name}")
+            # Always use small_box as the entry type
+            entry_type = "small_box"
+            print(f"Entry type: {entry_type}")
+            print(f"Validation type: {self.validation_type}")
+            print(f"Required: {self.required}")
+            
+            # Make sure required is properly converted to integer
+            required_int = 1 if self.required == "1" else 0
+            print(f"Required as integer: {required_int}")
+            
+            # Use the selected validation type and required status with fixed entry_type
+            # Pass required_int instead of self.required
+            self.logic.add_field_to_database(field_name, entry_type, self.validation_type, required_int)
+            
+            QMessageBox.information(self, "Success", f"Field '{field_name}' added successfully.")
+            self.field_name_entry.clear()
+            
+            # Reset to default values
+            self.validation_type = "string"
+            self.required = "1"
+            
+            # Update button styles to reflect defaults
+            self.set_validation_type("string")
+            self.set_required("1")
+            
+            # Refresh all views to show the new field
+            if hasattr(self.parent(), 'refresh_views'):
+                self.parent().refresh_views()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to add field: {str(e)}")
+            print(f"Error adding field: {str(e)}")
+    
+    def remove_field(self):
+        field_name = self.remove_field_entry.text().strip()
+        
+        if not field_name:
+            QMessageBox.warning(self, "Input Error", "Field name cannot be empty.")
+            return
+            
+        # Check if field exists
+        existing_fields = self.logic.get_existing_fields()
+        if field_name not in existing_fields:
+            QMessageBox.critical(self, "Error", f"Field '{field_name}' does not exist.")
+            return
+            
         # Define built-in fields that cannot be removed
         built_in_fields = ["brand", "category", "description", "id", "name", "price", "quantity"]
         
-        if field_name not in fields:
-            messagebox.showerror("Error", "Field name does not exist.")
-            return
-            
-        if field_name in built_in_fields:
-            messagebox.showerror("Error", f"'{field_name}' is a system field and cannot be removed.")
+        if field_name.lower() in [f.lower() for f in built_in_fields]:
+            QMessageBox.critical(self, "Error", f"'{field_name}' is a system field and cannot be removed.")
             return
             
         # Ask for confirmation
-        confirm = messagebox.askyesno("Confirm Deletion", 
-                                      f"Are you sure you want to remove the field '{field_name}'?\n\nThis will delete all associated data and cannot be undone.")
+        confirm = QMessageBox.question(
+            self, 
+            "Confirm Deletion", 
+            f"Are you sure you want to remove the field '{field_name}'?\n\nThis will delete all associated data and cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
         
-        if confirm:
-            self.inventory_system.remove_to_fields_table(field_name)
-            messagebox.showinfo("Success", f"Field '{field_name}' removed successfully.")
-            self.window.destroy()
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                print(f"Removing field: {field_name}")
+                
+                # First, remove the field from the fields table
+                self.inventory_system.remove_to_fields_table(field_name)
+                
+                # Then, remove the column from the items table
+                try:
+                    # Get all columns except the one to remove
+                    self.inventory_system.cursor.execute(f"PRAGMA table_info({self.inventory_system.items_table})")
+                    columns = [column[1] for column in self.inventory_system.cursor.fetchall() if column[1].lower() != field_name.lower()]
+                    
+                    # Create a new table without the column
+                    columns_str = ", ".join(columns)
+                    self.inventory_system.cursor.execute(f"CREATE TABLE temp_table AS SELECT {columns_str} FROM {self.inventory_system.items_table}")
+                    
+                    # Drop the old table
+                    self.inventory_system.cursor.execute(f"DROP TABLE {self.inventory_system.items_table}")
+                    
+                    # Rename the new table
+                    self.inventory_system.cursor.execute(f"ALTER TABLE temp_table RENAME TO {self.inventory_system.items_table}")
+                    
+                    # Commit the changes
+                    self.inventory_system.conn.commit()
+                    
+                    print(f"Successfully removed column '{field_name}' from items table")
+                except Exception as e:
+                    print(f"Error removing column from items table: {str(e)}")
+                    raise e
+                
+                QMessageBox.information(self, "Success", f"Field '{field_name}' removed successfully.")
+                self.remove_field_entry.clear()
+                
+                # Refresh all views to reflect the removed field
+                if hasattr(self.parent(), 'refresh_views'):
+                    self.parent().refresh_views()
+                    
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to remove field: {str(e)}")
+                print(f"Error removing field: {str(e)}")
+    
+    def refresh_fields(self):
+        """Refresh the list of fields in the remove field dropdown"""
+        if hasattr(self, 'remove_field_entry'):
+            existing_fields = self.logic.get_existing_fields()
+            # If this is a combobox, update its items
+            if hasattr(self.remove_field_entry, 'clear') and hasattr(self.remove_field_entry, 'addItems'):
+                self.remove_field_entry.clear()
+                self.remove_field_entry.addItems(existing_fields)

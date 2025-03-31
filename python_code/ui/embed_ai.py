@@ -1,4 +1,7 @@
-import customtkinter as ctk
+from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
+                            QLineEdit, QPushButton, QTextEdit)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QTextCursor, QTextCharFormat, QColor
 
 #
 # Embed AI Class is initialized with a llama instance and a parent frame
@@ -11,76 +14,234 @@ class EmbedAI:
         self.modify_callback = modify_callback
         
         self.colors = {
-            'primary': '#363062',
-            'danger': '#f44336',
-            'warning': '#ff9800',
-            'bg': '#ffffff',
-            'text': '#2c3e50',
-            'light_bg': '#f5f7fa'
+            'primary': '#1F2937',      # Dark background
+            'secondary': '#374151',    # Slightly lighter background
+            'accent': '#3B82F6',       # Blue accent
+            'user_bg': '#251e45',      # Darker blue for user messages
+            'ai_bg': '#1F2937',        # Dark gray for AI messages
+            'text': '#F9FAFB',         # Light text
+            'subtext': '#9CA3AF',      # Lighter text
+            'border': '#374151',       # Border color
+            'input_bg': '#111827'      # Dark input background
         }
         
         self.setup_ui()
-        
+
+    def update_login_state(self):
+        """Update the input field state based on login status"""
+        is_logged_in = self.llama.inventory_system.logged_in
+        self.message_entry.setEnabled(is_logged_in)
+        if is_logged_in:
+            self.message_entry.setPlaceholderText("Type your message here...")
+        else:
+            self.message_entry.setPlaceholderText("Please log in to chat")
+
     def setup_ui(self):
+        # Create main layout for the parent frame
+        main_layout = QVBoxLayout(self.llama_frame)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
+        
         # Create header frame inside the parent
-        header_frame = ctk.CTkFrame(self.llama_frame, fg_color=self.colors['primary'], corner_radius=0)
-        header_frame.pack(fill=ctk.X, padx=20, pady=15)
+        header_frame = QFrame()
+        header_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors['primary']};
+                border-radius: 8px;
+                border: 1px solid {self.colors['border']};
+            }}
+            QLabel {{
+                border: none;
+                background: transparent;
+            }}
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
         
-        header_label = ctk.CTkLabel(header_frame, 
-                                   text="Database Assistant", 
-                                   font=("Segoe UI", 15, "bold"), 
-                                   text_color="white")
-        header_label.pack(anchor="w")
+        header_label = QLabel("Database Assistant")
+        header_label.setStyleSheet(f"color: {self.colors['text']};")
+        header_label.setFont(QFont("Inter", 15, QFont.Weight.Bold))
+        header_layout.addWidget(header_label, alignment=Qt.AlignmentFlag.AlignLeft)
         
-        # Main container for the chat (This holds the Chat, The text box, and the send button)
-        container = ctk.CTkFrame(self.llama_frame, fg_color="white", corner_radius=0)
-        container.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
-
-        # Message entry frame
-        message_frame = ctk.CTkFrame(container, fg_color=self.colors["bg"], corner_radius=0)
-        message_frame.pack(side=ctk.BOTTOM, fill=ctk.X, padx=10, pady=10)
-
-        self.message_entry = ctk.CTkEntry(message_frame, font=("Segoe UI", 12), width=50)
-        self.message_entry.pack(side=ctk.LEFT, fill=ctk.X, expand=True, padx=(0, 10))
-
-        submit_button = ctk.CTkButton(message_frame, 
-                                    text="Send", 
-                                    command=self.submit_message, 
-                                    font=("Segoe UI", 12), 
-                                    fg_color=self.colors['primary'], 
-                                    text_color="white",
-                                    corner_radius=4)
-        submit_button.pack(side=ctk.RIGHT)
-
+        main_layout.addWidget(header_frame)
+        
+        # Main container for the chat
+        container = QFrame()
+        container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors['primary']};
+                border-radius: 8px;
+                border: 1px solid {self.colors['border']};
+            }}
+            QLabel {{
+                border: none;
+                background: transparent;
+            }}
+        """)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(20, 20, 20, 20)
+        
         # Chat history text widget
-        self.chat_history = ctk.CTkTextbox(container, 
-                                         wrap="word",
-                                         fg_color=self.colors['light_bg'],
-                                         text_color=self.colors['text'],
-                                         font=("Segoe UI", 12),
-                                         corner_radius=4)
-        self.chat_history.pack(side=ctk.TOP, fill=ctk.BOTH, expand=True, padx=10, pady=(10,0))
-        self.chat_history.configure(height=15)  # This sets a fixed height for the chat history
-        self.chat_history.configure(state="disabled")  # Make it read-only initially
+        self.chat_history = QTextEdit()
+        self.chat_history.setReadOnly(True)
+        self.chat_history.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors['input_bg']};
+                color: {self.colors['text']};
+                border: 1px solid {self.colors['border']};
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 0px;
+            }}
+        """)
+        self.chat_history.setFont(QFont("Inter", 12))
+        self.chat_history.setFixedHeight(210)
+        container_layout.addWidget(self.chat_history)
         
+        # Message entry frame
+        message_frame = QFrame()
+        message_frame.setStyleSheet("""
+            QFrame {
+                background: transparent;
+                border: none;
+            }
+        """)
+        message_layout = QHBoxLayout(message_frame)
+        message_layout.setContentsMargins(0, 8, 0, 0)  # Adjusted top margin to 8px
+        message_layout.setSpacing(10)
+        
+        self.message_entry = QLineEdit()
+        self.message_entry.setFont(QFont("Inter", 12))
+        self.message_entry.setEnabled(self.llama.inventory_system.logged_in)  # Set initial state
+        if not self.llama.inventory_system.logged_in:
+            self.message_entry.setPlaceholderText("Please log in to chat")
+        else:
+            self.message_entry.setPlaceholderText("Type your message here...")
+        self.message_entry.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.colors['input_bg']};
+                color: {self.colors['text']};
+                border: 1px solid {self.colors['border']};
+                border-radius: 8px;
+                padding: 8px 12px;
+            }}
+            QLineEdit:disabled {{
+                opacity: 0.6;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {self.colors['accent']};
+            }}
+        """)
+        if not self.llama.inventory_system.logged_in:  # Add this conditional
+            self.message_entry.setPlaceholderText("Please log in to chat")
+        self.message_entry.returnPressed.connect(self.submit_message)
+        message_layout.addWidget(self.message_entry)
+        
+        submit_button = QPushButton("Send")
+        submit_button.setFont(QFont("Inter", 12))
+        submit_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors['accent']};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+        """)
+        submit_button.clicked.connect(self.submit_message)
+        message_layout.addWidget(submit_button)
+        
+        container_layout.addWidget(message_frame)
+        main_layout.addWidget(container, 1)
+
     def submit_message(self):
-        user_message = self.message_entry.get()
+        user_message = self.message_entry.text()
         if user_message.strip():
-            self.update_chat("User", user_message)
-            self.message_entry.delete(0, 'end')
+            # Clear input and show user message immediately
+            self.message_entry.clear()
+            self.update_chat("You", user_message)
             
-            # Get AI's response
+            # Force the UI to update and show the user message
+            QTimer.singleShot(100, lambda: self._process_ai_response(user_message))
+            
+    def _process_ai_response(self, user_message):
+        # Store the current content
+        current_content = self.chat_history.toHtml()
+        
+        # Show loading message
+        self.update_chat("System", "Generating response...")
+        
+        try:
+            # Get AI response
             ai_response = self.llama.make_Query(user_message)
+            
+            # Restore previous content (removing only loading message)
+            self.chat_history.setHtml(current_content)
+            
+            # Show AI response
             self.update_chat("AI", ai_response)
+        except Exception as e:
+            # Restore previous content (removing only loading message)
+            self.chat_history.setHtml(current_content)
+            
+            # Show error message
+            self.update_chat("System", f"Error: {str(e)}")
+            print(f"Query failed: {e}")
+
+    def _remove_last_message(self):
+        # Get the document
+        document = self.chat_history.document()
+        
+        # Create a cursor at the end of the document
+        cursor = document.rootFrame().lastCursorPosition()
+        
+        # Select the last block (message)
+        cursor.movePosition(QTextCursor.MoveOperation.PreviousBlock, QTextCursor.MoveMode.KeepAnchor)
+        cursor.movePosition(QTextCursor.MoveOperation.PreviousBlock, QTextCursor.MoveMode.KeepAnchor)
+        cursor.movePosition(QTextCursor.MoveOperation.PreviousBlock, QTextCursor.MoveMode.KeepAnchor)
+        
+        # Delete the selected text
+        cursor.removeSelectedText()
         
     def update_chat(self, sender, message):
-        self.chat_history.configure(state="normal")
-        self.chat_history.insert("end", f"{sender}: {message}\n")
-        self.chat_history.configure(state="disabled")
-        self.chat_history.see("end")
+        # Create a cursor for text manipulation
+        cursor = self.chat_history.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        
+        # Set text format based on sender
+        format = QTextCharFormat()
+        format.setFont(QFont("Inter", 12))
+        
+        if sender == "You":
+            format.setForeground(QColor("#93C5FD"))  # Light blue for user name
+            format.setBackground(QColor(self.colors['user_bg']))  # Dark blue background
+        elif sender == "AI":
+            format.setForeground(QColor("#10B981"))  # Emerald green for AI name
+            format.setBackground(QColor(self.colors['ai_bg']))  # Dark gray background
+        else:
+            format.setForeground(QColor("#111827"))  # Dark text for system messages
+            format.setBackground(QColor("#f59e0b"))  # Amber background
+        
+        # Insert sender name
+        cursor.insertText(f"{sender}:\n", format)
+        
+        # Reset format for message
+        message_format = QTextCharFormat()
+        message_format.setFont(QFont("Inter", 12))
+        message_format.setForeground(QColor(self.colors['text']))
+        
+        # Insert message
+        cursor.insertText(f"{message}\n\n", message_format)
+        
+        # Scroll to the bottom
+        self.chat_history.verticalScrollBar().setValue(
+            self.chat_history.verticalScrollBar().maximum()
+        )
 
-    
-    #     # Set modern style for the treeview
+            #     # Set modern style for the treeview
     #     style = ttk.Style()
     #     style.theme_use("clam")
         

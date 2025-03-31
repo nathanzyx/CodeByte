@@ -1,6 +1,5 @@
 import pandas as pd
-import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk, Frame
+from PyQt6.QtWidgets import QMessageBox, QInputDialog, QWidget
 from datetime import datetime
 from ui import *
 import sqlite3
@@ -26,8 +25,8 @@ class DatabaseSystem:
         # We get the log file in append mode
         self.log_file = self.getLogFile(name, ".txt")
         
-        self.username = "123"
-        self.password = "123"
+        self.username = "admin"
+        self.password = "321"
         self.logged_in = False
         
         # Create/Connect SQLite3 Database "products" (and table)
@@ -142,32 +141,47 @@ class DatabaseSystem:
     #
     def add_to_fields_table(self, field_name, entry_type, validation_type, required):
         
-        # Convert the required fields from True/False to 1/0
-        required_int = 0
-        if required:
-            required_int = 1
+        # Convert the required parameter to integer (0 or 1)
+        # This handles both string values ("0"/"1") and integer values (0/1)
+        if isinstance(required, str):
+            required_int = 1 if required == "1" else 0
+        else:
+            required_int = 1 if required else 0
             
         try:
+            # Check if field already exists in fields table
+            self.cursor.execute(f"SELECT COUNT(*) FROM {self.fields_table} WHERE field_name=?", (field_name,))
+            if self.cursor.fetchone()[0] > 0:
+                raise ValueError(f"Field '{field_name}' already exists in fields table")
+                
             # Insert field and its info to fields table
-            self.cursor.execute("INSERT INTO fields VALUES (?, ?, ?, ?)", (field_name, entry_type, validation_type, required_int))
+            self.cursor.execute(f"INSERT INTO {self.fields_table} VALUES (?, ?, ?, ?)", 
+                               (field_name, entry_type, validation_type, required_int))
             self.conn.commit()
             
             # Check if the column already exists in the products table
             self.cursor.execute(f"PRAGMA table_info({self.items_table})")
             existing_columns = [column[1] for column in self.cursor.fetchall()]
-
+        
             # If the column doesn't exist, add it to the products table
             if field_name not in existing_columns:
                 sql_type = {"string": "TEXT", "int": "INTEGER", "float": "REAL"}[validation_type]
                 self.cursor.execute(f"ALTER TABLE {self.items_table} ADD COLUMN {field_name} {sql_type}")
                 self.conn.commit()
+            else:
+                # If column exists but not in fields table, we have a sync issue
+                raise ValueError(f"Column '{field_name}' already exists in products table but was not in fields table")
             
             # LOG MESSAGE
             self.log_message(f"Field Added: field_name:{str(field_name)}, entry_type:{str(entry_type)}, validation_type:{str(validation_type)}, required:{str(required_int)}")
             return True
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as e:
             # LOG MESSAGE
             self.log_message(f"ERROR: Field Added Attempted: field_name:{str(field_name)}, entry_type:{str(entry_type)}, validation_type:{str(validation_type)}, required:{str(required_int)}")
+            raise ValueError(f"Database integrity error: {str(e)}")
+        except Exception as e:
+            self.log_message(f"ERROR: Field Added Attempted: field_name:{str(field_name)}, entry_type:{str(entry_type)}, validation_type:{str(validation_type)}, required:{str(required_int)}")
+            raise e
         return False
 
     
@@ -192,23 +206,34 @@ class DatabaseSystem:
     #       - Inputs the products data into its categories in the database
     #
     def add_item_to_database(self, product_data):
-    
-        # Fetch field names from the database (excluding primary keys or auto-generated fields if needed)
-        self.cursor.execute(f"SELECT field_name FROM {self.fields_table}")
-        fields = [row[0] for row in self.cursor.fetchall()]
-
-        # Ensure all required fields are present
-        # Iterates through field in fields, then checks if field is not in product data
+        # Fetch field names and required status from the database
+        self.cursor.execute(f"SELECT field_name, required FROM {self.fields_table}")
+        field_info = {row[0]: row[1] for row in self.cursor.fetchall()}
+        
+        print(f"Field info from database: {field_info}")
+        
+        # Get all field names
+        fields = list(field_info.keys())
+        
+        # Check for missing fields
         missing_fields = [field for field in fields if field not in product_data]
         if missing_fields:
             print(f"Missing fields: {missing_fields}")
             return False
-
+        
+        # Check for required fields with empty values
+        empty_required_fields = [field for field, required in field_info.items() 
+                                if required == 1 and field in product_data and not product_data[field]]
+        
+        if empty_required_fields:
+            print(f"Empty required fields: {empty_required_fields}")
+            return False
+    
         # Prepare dynamic SQL query
         placeholders = ", ".join(["?" for _ in fields])
         field_names = ", ".join(fields)
-        values = tuple(product_data[field] for field in fields)
-
+        values = tuple(product_data.get(field, "") for field in fields)
+    
         # Add items to database
         self.cursor.execute(f"INSERT INTO {self.items_table} ({field_names}) VALUES ({placeholders})", values)
         self.conn.commit()
@@ -319,12 +344,97 @@ class DatabaseSystem:
     #   You can also just delete the database file for a fresh start
     #
     def clear_database(self):
-        # Show confirmation dialog
-        if messagebox.askyesno("Confirm", "Are you sure you want to clear the database? This action cannot be undone."):
-            self.cursor.execute(f"DELETE FROM {self.items_table}")
-            self.conn.commit()
-            messagebox.showinfo("Success", "Database cleared successfully.")
-            # LOG MESSAGE
-            self.log_message(f"Database Cleared!")
+        # Show confirmation dialog using PyQt6
+        confirm = QMessageBox.question(
+            None, 
+            "Confirm", 
+            "Are you sure you want to clear the database? This will remove ALL items and custom fields. This action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                # Drop the products table completely instead of just deleting rows
+                self.cursor.execute(f"DROP TABLE IF EXISTS {self.items_table}")
+                
+                # Clear custom fields (but keep the built-in fields)
+                built_in_fields = ["brand", "category", "description", "id", "name", "price", "quantity"]
+                placeholders = ", ".join(["?" for _ in built_in_fields])
+                self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name NOT IN ({placeholders})", built_in_fields)
+                
+                # Recreate the products table with the remaining fields
+                self.create_products_table()
+                
+                self.conn.commit()
+                QMessageBox.information(None, "Success", "Database cleared successfully. All items and custom fields have been removed.")
+                # LOG MESSAGE
+                self.log_message("Database Cleared! (Items and custom fields)")
+                return True
+            except Exception as e:
+                QMessageBox.critical(None, "Error", f"Failed to clear database: {str(e)}")
+                print(f"Error clearing database: {str(e)}")
+                return False
+        return False
+
+
+# Make sure this method is properly indented to be part of the DatabaseSystem class
+def remove_field_from_database(self, field_name):
+    """Remove a field from the database"""
+    try:
+        # First, check if the field exists
+        self.cursor.execute(f"SELECT COUNT(*) FROM {self.fields_table} WHERE field_name=?", (field_name,))
+        if self.cursor.fetchone()[0] == 0:
+            raise ValueError(f"Field '{field_name}' does not exist")
+            
+        # Remove the field from the fields table
+        self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name=?", (field_name,))
+        
+        # SQLite doesn't support DROP COLUMN directly, so we need to:
+        # 1. Get all columns except the one to remove
+        self.cursor.execute(f"PRAGMA table_info({self.items_table})")
+        columns = [column[1] for column in self.cursor.fetchall() if column[1] != field_name]
+        
+        # 2. Create a new table without the column
+        columns_str = ", ".join(columns)
+        self.cursor.execute(f"CREATE TABLE temp_table AS SELECT {columns_str} FROM {self.items_table}")
+        
+        # 3. Drop the old table
+        self.cursor.execute(f"DROP TABLE {self.items_table}")
+        
+        # 4. Rename the new table
+        self.cursor.execute(f"ALTER TABLE temp_table RENAME TO {self.items_table}")
+        
+        self.conn.commit()
+        self.log_message(f"Field Removed: field_name:{str(field_name)}")
+        return True
+    except Exception as e:
+        self.log_message(f"ERROR: Field Removal Attempted: field_name:{str(field_name)}")
+        raise e
+
+# Add a method to get field information including required status
+def get_field_info(self, field_name=None):
+    """Get information about fields including their required status"""
+    try:
+        if field_name:
+            self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table} WHERE field_name=?", (field_name,))
+            result = self.cursor.fetchone()
+            if result:
+                return {
+                    'field_name': result[0],
+                    'entry_type': result[1],
+                    'validation_type': result[2],
+                    'required': bool(result[3])  # Convert 0/1 to False/True
+                }
+            return None
         else:
-            messagebox.showinfo("Cancelled", "Database clear operation cancelled.")
+            self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table}")
+            results = self.cursor.fetchall()
+            return [{
+                'field_name': row[0],
+                'entry_type': row[1],
+                'validation_type': row[2],
+                'required': bool(row[3])  # Convert 0/1 to False/True
+            } for row in results]
+    except Exception as e:
+        print(f"Error getting field info: {str(e)}")
+        return [] if field_name is None else None

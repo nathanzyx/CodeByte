@@ -1,20 +1,23 @@
 import pandas as pd
 import sys
 import os
-import customtkinter as ctk
-from tkinter import messagebox, simpledialog, ttk
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+                            QLabel, QPushButton, QFrame, QMessageBox, QStackedWidget, QLineEdit)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from datetime import datetime
 import re
 from ui.ui_logic import UILogic
-from ui.search_view_edit import SearchViewEdit
+# Remove the import for SearchViewEdit
+# from ui.search_view_edit import SearchViewEdit
 from ui.login_view import LoginView
-from ui.display_default import DisplayDefault
 from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
 
 from ui.embed_ai import EmbedAI
 from ai.AI import AI 
+from ui.inventory_view import InventoryView  # Import the new InventoryView
 
 #   UI Class
 #    -  This class is for the UI of a database instance
@@ -27,67 +30,413 @@ class UI:
         self.logic = UILogic(inventory_system)
         self.patterns = self.logic.patterns
         self.crnt_user = "N/A"
-        self.root = ctk.CTk()
+        self.app = QApplication(sys.argv)
+        self.root = QMainWindow()
         
         self.colors = {
-            'bg': '#f0f2f5',
+            'bg': '1e1e1e',
             'sidebar': '#ffffff',
             'primary': '#363062',
             'secondary': '#424242',
             'accent': '#2196f3',
             'danger': '#f44336',
             'text': '#2c3e50',
-            'subtext': '#666666'
+            'subtext': '#c01fed'
         }
         self.container = None
         self.content = None
         self.ai_frame = None
 
+        # Initialize QStackedWidget
+        self.stacked_widget = QStackedWidget()
+        
+        # Create default view with original dashboard theme
+        self.default_view = QWidget()
+        default_layout = QVBoxLayout(self.default_view)
+        default_layout.setContentsMargins(20, 20, 20, 20)  # Add some padding
+        
+        # Set the background color for the default view
+        self.default_view.setStyleSheet("background-color: #1e1e1e;")  # Darker background
+        
+        # Fix welcome frame stylesheet
+        welcome_frame = QFrame()
+        welcome_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                border-radius: 12px;
+                border: 1px solid #374151;
+            }
+            QLabel {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        
+        # Create and set up background frame for default view
+        # Fix background frame stylesheet
+        background_frame = QFrame(self.default_view)
+        background_frame.setStyleSheet("background-color: #1e1e1e;")
+        background_frame.setGeometry(0, 0, self.default_view.width(), self.default_view.height())
+        background_frame.setAutoFillBackground(True)
+        
+        # Fix welcome frame stylesheet
+        welcome_frame = QFrame()
+        welcome_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                border-radius: 12px;
+                border: 1px solid #374151;
+            }
+            QLabel {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        
+        # Fix stats container stylesheet
+        stats_container = QFrame()
+        stats_container.setStyleSheet("background-color: #1e1e1e;")
+        
+        # Fix AI frame stylesheet
+        self.ai_frame = QFrame()
+        self.ai_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                border-radius: 12px;
+                border: 1px solid #374151;
+            }
+            QLabel {
+                color: #E5E7EB;
+            }
+            QTextEdit {
+                background-color: #111827;
+                border: 1px solid #374151;
+                border-radius: 8px;
+                color: #E5E7EB;
+                padding: 8px;
+            }
+            QPushButton {
+                background-color: #3B82F6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+            }
+        """)
+        
+        # Fix sidebar stylesheet
+        sidebar = QFrame()
+        sidebar.setStyleSheet("""
+            background-color: #16181A;
+        """)
+        
+        # Fix profile frame stylesheet
+        profile_frame = QFrame()
+        profile_frame.setStyleSheet("""
+            QFrame {
+                background-color: #313538;
+                border-radius: 8px;
+                margin-bottom: 8px;
+            }
+        """)
+        welcome_layout = QVBoxLayout(welcome_frame)
+        welcome_layout.setContentsMargins(20, 20, 20, 20)
+        
+        welcome_title = QLabel("Welcome to Your Inventory Dashboard")
+        welcome_title.setFont(QFont("Inter", 20, QFont.Weight.Bold))
+        welcome_title.setStyleSheet("color: #F9FAFB; background: transparent;")
+        welcome_layout.addWidget(welcome_title)
+        
+        welcome_subtitle = QLabel("Manage your inventory efficiently with our modern interface")
+        welcome_subtitle.setFont(QFont("Inter", 12))
+        welcome_subtitle.setStyleSheet("color: #9CA3AF; background: transparent;")
+        welcome_layout.addWidget(welcome_subtitle)
+
+        default_layout.addWidget(welcome_frame)
+
+        # Stats cards container
+        stats_container = QFrame()
+        stats_container.setStyleSheet("background-color: #1e1e1e;")
+        stats_layout = QHBoxLayout(stats_container)
+        stats_layout.setContentsMargins(0, 20, 0, 20)
+
+        def create_stat_card(title, value, icon, show_settings=False):
+            card = QFrame()
+            card.setStyleSheet("""
+                QFrame {
+                    background-color: #1F2937;
+                    border-radius: 12px;
+                    border: none;
+                }
+                QLabel {
+                    background-color: transparent;
+                    border: none;
+                }
+                QLineEdit {
+                    background-color: #374151;
+                    color: #E5E7EB;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    max-width: 60px;
+                }
+                QLineEdit:focus {
+                    border-color: #3B82F6;
+                }
+            """)
+            
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(20, 15, 20, 15)
+            
+            # Create a container frame for the content
+            content_container = QFrame()
+            container_layout = QVBoxLayout(content_container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            
+            # Icon and content
+            icon_label = QLabel(icon)
+            icon_label.setFont(QFont("Inter", 24))
+            icon_label.setStyleSheet("color: #E5E7EB;")
+            container_layout.addWidget(icon_label)
+            
+            title_label = QLabel(title)
+            title_label.setFont(QFont("Inter", 11))
+            title_label.setStyleSheet("color: #9CA3AF;")
+            container_layout.addWidget(title_label)
+            
+            value_label = QLabel(value)
+            value_label.setFont(QFont("Inter", 20, QFont.Weight.Bold))
+            value_label.setStyleSheet("color: #F9FAFB;")
+            container_layout.addWidget(value_label)
+            
+            card_layout.addWidget(content_container)
+            
+            # Add floating input if show_settings is True
+            if show_settings:
+                threshold_input = QLineEdit(card)
+                threshold_input.setPlaceholderText("Qty")
+                threshold_input.setFixedSize(60, 28)
+                threshold_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                threshold_input.setStyleSheet("""
+                    QLineEdit {
+                        background-color: #374151;
+                        color: #E5E7EB;
+                        border: 1px solid #4B5563;
+                        border-radius: 4px;
+                        padding: 4px 8px;
+                    }
+                    QLineEdit:focus {
+                        border-color: #3B82F6;
+                    }
+                """)
+                
+                def update_low_stock_count():
+                    try:
+                        threshold = int(threshold_input.text())
+                        items_df = self.inventory_system.get_all_items()
+                        if 'quantity' in items_df.columns:
+                            low_stock_count = len(items_df[items_df['quantity'].astype(float) <= threshold])
+                            value_label.setText(str(low_stock_count))
+                    except ValueError:
+                        value_label.setText("--")
+                
+                threshold_input.textChanged.connect(update_low_stock_count)
+                threshold_input.move(card.width() - 80, 15)  # Position in top-right corner
+                
+                # Handle card resize to keep input in correct position
+                def on_resize():
+                    threshold_input.move(card.width() - 80, 15)
+                
+                card.resizeEvent = lambda e: on_resize()
+            
+            return card
+        
+        def calculate_total_value():
+            items_df = self.inventory_system.get_all_items()
+            if 'price' in items_df.columns and 'quantity' in items_df.columns:
+                # Convert price to float and multiply by quantity
+                items_df['price'] = items_df['price'].astype(float)
+                items_df['quantity'] = items_df['quantity'].astype(float)
+                total_value = (items_df['price'] * items_df['quantity']).sum()
+                return f"${total_value:,.2f}"
+            return "$0.00"
+
+        # Add stats cards with real data
+        stats_layout.addWidget(create_stat_card("Total Products", str(len(self.inventory_system.get_all_items())), "📦"))
+        stats_layout.addWidget(create_stat_card("Low Stock Items", "--", "⚠️", show_settings=True))
+        stats_layout.addWidget(create_stat_card("Total Value", calculate_total_value(), "💰"))
+        
+        default_layout.addWidget(stats_container)
+        
+        # AI Assistant section
+        self.ai_frame = QFrame()
+        self.ai_frame.setStyleSheet("background-color: #1F2937; border-radius: 12px;")
+        self.embed_ai = EmbedAI(self.ai, self.ai_frame)  # Pass the AI instance
+        default_layout.addWidget(self.ai_frame)
+        
+        # Remove or comment out this line as it creates a duplicate instance
+        # EmbedAI(self.ai, self.ai_frame)
+        self.ai_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                border-radius: 12px;
+                border: 1px solid #374151;
+            }
+            QLabel {
+                color: #E5E7EB;
+            }
+            QTextEdit {
+                background-color: #111827;
+                border: 1px solid #374151;
+                border-radius: 8px;
+                color: #E5E7EB;
+                padding: 8px;
+            }
+            QPushButton {
+                background-color: #3B82F6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+            }
+        """)
+        default_layout.addWidget(self.ai_frame, 1)  # 1 is the stretch factor
+        
+        # Initialize AI assistant
+        EmbedAI(self.ai, self.ai_frame)
+        
+        # Footer
+        footer = QFrame()
+        footer.setStyleSheet(f"background-color: {self.colors['bg']};")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 10, 0, 0)
+        
+        current_time = datetime.now().strftime("%d %b %Y")
+        version_label = QLabel(f"v1.0 • {current_time}")
+        version_label.setFont(QFont("Inter", 9))
+        version_label.setStyleSheet(f"color: {self.colors['subtext']};")
+        footer_layout.addStretch()
+        footer_layout.addWidget(version_label)
+        
+        default_layout.addWidget(footer)
+        
+        # Add default view and inventory view to QStackedWidget
+        self.stacked_widget.addWidget(self.default_view)
+        self.inventory_view = InventoryView(self.root, self.inventory_system)  # Use the new InventoryView
+        self.stacked_widget.addWidget(self.inventory_view)
+        
+        # Create add product view and add it to stacked widget
+        from ui.add_item_view import AddItemView
+        self.add_product_view = QWidget()
+        add_product_layout = QVBoxLayout(self.add_product_view)
+        add_product_layout.setContentsMargins(0, 0, 0, 0)
+        self.add_item_view = AddItemView(self.root, self.logic, self.inventory_system)
+        add_product_layout.addWidget(self.add_item_view)
+        self.stacked_widget.addWidget(self.add_product_view)
+
+        # Create remove product view and add it to stacked widget
+        self.remove_product_view = QWidget()
+        remove_product_layout = QVBoxLayout(self.remove_product_view)
+        remove_product_layout.setContentsMargins(0, 0, 0, 0)
+        self.remove_item_view = RemoveItemView(self.root, self.inventory_system, self.patterns)
+        remove_product_layout.addWidget(self.remove_item_view)
+        self.stacked_widget.addWidget(self.remove_product_view)
+    
     #
     #   This function returns the users login status along with a message if not logged in
     #
     def is_logged_in(self):
         if not self.inventory_system.logged_in:
-            messagebox.showerror("Login Required", "You must be logged in to perform this action.")
+            QMessageBox.critical(self.root, "Login Required", "You must be logged in to perform this action.")
             return False
         return True
         
     def display_inventory(self):
         if not self.is_logged_in():
             return
-        SearchViewEdit(self.root, self.logic, self.inventory_system)
+        # Switch to the inventory view in the stacked widget
+        self.stacked_widget.setCurrentWidget(self.inventory_view)
+        # Refresh the inventory view to show the latest data
+        self.inventory_view.display_all_items()
+        self.refresh_views()
     
     def display_add_item(self):
         if not self.is_logged_in():
             return
-        AddItemView(self.root, self.logic, self.inventory_system)
-        # self.inventory_system.add_log_entry("Item added", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        # Switch to the add product view in the stacked widget
+        self.stacked_widget.setCurrentWidget(self.add_product_view)
+        # Refresh the view to show the latest fields
+        if hasattr(self, 'add_product_view'):
+            # Recreate the add item view to reflect any field changes
+            self.stacked_widget.removeWidget(self.add_product_view)
+            self.add_product_view = AddItemView(self.root, self.logic, self.inventory_system)
+            self.stacked_widget.addWidget(self.add_product_view)
+            self.stacked_widget.setCurrentWidget(self.add_product_view)
     
-    #   REMOVE ITEM UI
-    #       User Enters:
-    #               - ID of Item to be Removed
-    #               - Number of that Item to be Removed (int)
     def display_remove_item(self):
         if not self.is_logged_in():
             return
-        RemoveItemView(self.root, self.inventory_system, self.patterns)
-        # self.inventory_system.add_log_entry("Item removed", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        
-    #   OPTIONS MENU    
-    #       - Add Field (for adding product field)
-    #       - Remove Field (for removing product field)
-    #
+        # Switch to the remove product view in the stacked widget
+        self.stacked_widget.setCurrentWidget(self.remove_product_view)
+        # Refresh the view to show the latest items
+        if hasattr(self, 'remove_product_view'):
+            # Check if the method exists before calling it
+            if hasattr(self.remove_product_view, 'refresh_items'):
+                self.remove_product_view.refresh_items()
+            else:
+                print("Warning: remove_product_view does not have refresh_items method")
+                # Recreate the remove item view to reflect any changes
+                index = self.stacked_widget.indexOf(self.remove_product_view)
+                self.stacked_widget.removeWidget(self.remove_product_view)
+                
+                # Import here to avoid circular imports
+                from ui.remove_item_view import RemoveItemView
+                self.remove_product_view = RemoveItemView(self.root, self.inventory_system, self.patterns)
+                
+                self.stacked_widget.insertWidget(index, self.remove_product_view)
+                self.stacked_widget.setCurrentWidget(self.remove_product_view)
+    
     def display_options(self):
         if not self.is_logged_in():
             return
-        ManageFieldsView(self.root, self.logic, self.inventory_system)
-        
+        # Create the manage fields view and add it to the stacked widget if it doesn't exist
+        if not hasattr(self, 'manage_fields_view'):
+            self.manage_fields_view = ManageFieldsView(self.root, self.logic, self.inventory_system)
+            self.stacked_widget.addWidget(self.manage_fields_view)
+        # Switch to the manage fields view
+        self.stacked_widget.setCurrentWidget(self.manage_fields_view)
+    
     def display_login(self):
         if not self.inventory_system.logged_in:
-            LoginView(self.root, self.logic, self.inventory_system)
+            login_dialog = LoginView(self.root, self.logic, self.inventory_system)
+            login_dialog.exec()
             
+            # Refresh the menu after successful login
+            if self.inventory_system.logged_in:
+                self.crnt_user = self.inventory_system.username  # Update current user
+                # Store current window size
+                current_size = self.root.size()
+                # Clear and rebuild the menu
+                if self.root.centralWidget():
+                    self.root.centralWidget().deleteLater()
+                self.display_menu()
+                # Restore the window size
+                self.root.resize(current_size)
+                
+                # Add this to refresh the AI chat interface
+                if hasattr(self, 'embed_ai'):
+                    self.embed_ai.update_login_state()
+    
     def display_ai_assistant(self):
-        EmbedAI(self.ai, self.ai_frame)
+        # Remove this method or modify it to avoid adding a layout twice
+        # The EmbedAI is already being called in display_menu
+        pass
         
     def exit_application(self):
         # Perform any actions you want before exiting
@@ -95,8 +444,8 @@ class UI:
         self.inventory_system.log_message(f" -- LOGOUT: user:{str(self.crnt_user)}")
 
         # Exit application
-        self.root.quit()
-    
+        self.app.quit()
+        
     #   MENU
     #       - Display Inventory (see all products in database table)
     #       - Add/Remove Product
@@ -105,181 +454,399 @@ class UI:
     #       - Exit (quit the program)
     def display_menu(self):
         # Configure the main window
-        self.root.title(self.inventory_system.name)
-        self.root.geometry("1200x800")
-        ctk.set_appearance_mode("light")  # Use light mode to match original style
-
+        self.root.setWindowTitle(self.inventory_system.name)
+        
+        # Replace the fixed size with minimum size
+        self.root.setMinimumSize(1200, 780)  # Set minimum size based on the warning message
+        self.root.resize(1200, 780)  # Initial size, but now resizable
+        
+        # Create central widget
+        central_widget = QWidget()
+        self.root.setCentralWidget(central_widget)
+        
         # Create main container with sidebar and content area
-        self.container = ctk.CTkFrame(self.root, fg_color=self.colors['bg'], corner_radius=0)
-        self.container.pack(fill=ctk.BOTH, expand=True)
-        main_container = self.container
-
-        # Sidebar
-        sidebar = ctk.CTkFrame(main_container, fg_color=self.colors['sidebar'], width=280, corner_radius=0)
-        sidebar.pack(side=ctk.LEFT, fill=ctk.Y, padx=0)
-        sidebar.pack_propagate(False)  # Maintain width
-
-        # Logo and title area
-        logo_frame = ctk.CTkFrame(sidebar, fg_color=self.colors['primary'], height=130, corner_radius=0)
-        logo_frame.pack(fill=ctk.X)
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        logo_label = ctk.CTkLabel(logo_frame, text="💻", font=("Arial", 28), text_color="white")
-        logo_label.pack(pady=(20, 0))
+        # Create a dark background for the entire dashboard
+        dashboard_background = QFrame()
+        dashboard_background.setStyleSheet("background-color: #1e1e1e;")  # Darker background
+        dashboard_background.setAutoFillBackground(True)
+        dashboard_background.lower()  # Move to the back
         
-        # App name - take first word from inventory system name
-        app_name = ctk.CTkLabel(logo_frame, text=self.inventory_system.name.split()[0], 
-                          font=("Segoe UI", 16, "bold"), text_color="white")
-        app_name.pack(pady=(0, 5))
+        # Create sidebar with dark mode
+        sidebar = QFrame()
+        sidebar.setStyleSheet("background-color: #16181A;")
+        sidebar.setFixedWidth(260)  # Reduced width to match NextUI
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(16, 16, 16, 16)  # Match NextUI padding
+        sidebar_layout.setSpacing(0)
         
-        # Tagline
-        tagline = ctk.CTkLabel(logo_frame, text="Inventory System", font=("Segoe UI", 10), 
-                         text_color="#e0e0e0")
-        tagline.pack(pady=(0, 10))
+        # Header with logo
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: transparent;")
+        header_frame.setFixedHeight(50)  # Reduced height
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(0, 0, 0, 16)  # Bottom margin only
         
-        # Navigation menu
-        nav_frame = ctk.CTkFrame(sidebar, fg_color=self.colors['sidebar'], corner_radius=0)
-        nav_frame.pack(fill=ctk.BOTH, expand=True, padx=16)
-
-        # Button style
-        nav_btn_style = {
-            "font": ("Segoe UI", 11),
-            "width": 250,
-            "height": 40,
-            "anchor": "w",
-            "fg_color": self.colors['sidebar'],
-            "text_color": self.colors['text'],
-            "hover_color": self.colors['bg'],
-            "corner_radius": 4
-        }
-
-        def create_nav_button(text, icon, command):
-            btn = ctk.CTkButton(nav_frame, text=f" {icon}  {text}", command=command, **nav_btn_style)
-            btn.pack(pady=4)
+        # Cool app logo with emojis
+        app_logo = QLabel("🚀 Electronics")
+        app_logo.setFont(QFont("Inter", 13, QFont.Weight.Bold))
+        app_logo.setStyleSheet("""
+            color: #ECEDEE;
+            padding: 8px 4px;
+        """)
+        
+        # Add a status indicator - green dot
+        status_indicator = QLabel("●")
+        status_indicator.setFont(QFont("Inter", 8))
+        status_indicator.setStyleSheet("""
+            color: #17C964;  /* Green dot */
+            margin-left: 8px;
+            padding-bottom: 2px;
+        """)
+        
+        # Add a version label
+        version_indicator = QLabel("v1.0")
+        version_indicator.setFont(QFont("Inter", 8))
+        version_indicator.setStyleSheet("""
+            color: #889096;
+            margin-left: 12px;
+            background-color: #2D3135;
+            padding: 2px 6px;
+            border-radius: 4px;
+        """)
+        
+        header_layout.addWidget(app_logo)
+        header_layout.addWidget(status_indicator)
+        header_layout.addWidget(version_indicator)
+        header_layout.addStretch()  # Push everything to the left
+        
+        sidebar_layout.addWidget(header_frame)
+        
+        # Add a subtle horizontal separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet("background-color: #313538; max-height: 1px;")
+        sidebar_layout.addWidget(separator)
+        sidebar_layout.addSpacing(8)  # Add a bit of space after the separator
+        
+        # Sidebar body
+        body_frame = QFrame()
+        body_frame.setStyleSheet("background-color: transparent;")
+        body_layout = QVBoxLayout(body_frame)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(4)  # Reduced spacing between items
+        
+        # NextUI sidebar item style for dark mode
+        sidebar_item_style = """
+            QPushButton {
+                background-color: transparent;
+                color: #7E868C;
+                border: none;
+                text-align: left;
+                padding: 6px 12px;
+                font-family: 'Inter';
+                font-size: 10pt;
+                border-radius: 6px;
+                min-height: 34px;
+            }
+            QPushButton:hover {
+                background-color: #313538;
+            }
+            QPushButton:checked {
+                background-color: rgba(0, 111, 238, 0.15);
+                color: #006FEE;
+                font-weight: 500;
+            }
+        """
+        
+        # After the sidebar_item_style definition, add this:
+        self.sidebar_buttons = []  # Store all sidebar buttons
+        
+        # Modify the create_sidebar_item function:
+        def create_sidebar_item(text, icon, command, is_active=False):
+            btn = QPushButton(f" {icon}  {text}")
+            btn.setFont(QFont("Inter", 9))
+            btn.setStyleSheet(sidebar_item_style)
+            btn.setCheckable(True)
+            btn.setChecked(is_active)
+            
+            # Create a wrapped command that handles button states
+            def wrapped_command():
+                # Uncheck all other buttons
+                for other_btn in self.sidebar_buttons:
+                    other_btn.setChecked(False)
+                btn.setChecked(True)
+                command()
+            
+            btn.clicked.connect(wrapped_command)
+            self.sidebar_buttons.append(btn)  # Add button to the group
             return btn
 
-        # Navigation buttons
-        create_nav_button("Inventory", "📊", self.display_inventory)
-        create_nav_button("Add Product", "➕", self.display_add_item)
-        create_nav_button("Remove Product", "➖", self.display_remove_item)
-        
-        # Separator
-        separator = ctk.CTkFrame(nav_frame, height=2, fg_color=self.colors['bg'], corner_radius=0)
-        separator.pack(fill=ctk.X, pady=20)
-        
-        create_nav_button("Manage Fields", "⚙️", self.display_options)
-        create_nav_button("Clear Database", "🗑️", self.inventory_system.clear_database)
-        
-        # Exit button at bottom of sidebar
-        exit_btn = ctk.CTkButton(sidebar, text=" 🚪  Exit Application",
-                            command=self.exit_application,
-                            font=("Segoe UI", 11),
-                            text_color="white",
-                            fg_color=self.colors['danger'],
-                            hover_color="#d32f2f",
-                            corner_radius=4,
-                            width=250,
-                            height=40)
-        exit_btn.pack(side=ctk.BOTTOM, pady=20)
-        
-        login_btn = ctk.CTkButton(sidebar, text=" ✅  Login",
-                            command=self.display_login,
-                            font=("Segoe UI", 11),
-                            text_color="white",
-                            fg_color="#969696",
-                            hover_color="#7a7a7a",
-                            corner_radius=4,
-                            width=250,
-                            height=40)
-        login_btn.pack(side=ctk.BOTTOM, pady=20)
+        # Create sidebar items as before
+        def wrapped_command_for_home():
+            # Uncheck all other buttons
+            for other_btn in self.sidebar_buttons:
+                other_btn.setChecked(False)
+            home_btn.setChecked(True)
+            self.stacked_widget.setCurrentWidget(self.default_view)
+            # Refresh the dashboard stats
+            self.refresh_dashboard_stats()
 
-        # Add watermark below the exit button
-        watermark = ctk.CTkLabel(sidebar, 
-                           text="Made by CodeByte",
-                           font=("Segoe UI", 8, "italic"),
-                           text_color="#a0a0a0",
-                           fg_color=self.colors['sidebar'])
-        watermark.pack(side=ctk.BOTTOM, pady=(0, 5))
-
-        # Main content area
-        self.content = ctk.CTkFrame(self.container, fg_color=self.colors['bg'], corner_radius=0)
-        self.content.pack(side=ctk.LEFT, fill=ctk.BOTH, expand=True, padx=30, pady=30)
-        content = self.content
-
-        # Welcome card
-        welcome_card = ctk.CTkFrame(content, fg_color="white", corner_radius=6)
-        welcome_card.pack(fill=ctk.X, pady=(0, 20), padx=5, ipady=20, ipadx=20)
+        home_btn = create_sidebar_item("Dashboard", "🏠", wrapped_command_for_home, True)
+        body_layout.addWidget(home_btn)
         
-        welcome_title = ctk.CTkLabel(welcome_card,
-                text="Welcome to Your Inventory Dashboard",
-                font=("Segoe UI", 20, "bold"),
-                text_color=self.colors['text'])
-        welcome_title.pack(anchor="w", padx=20, pady=(20, 0))
-                
-        welcome_subtitle = ctk.CTkLabel(welcome_card,
-                text="Manage your inventory efficiently with our modern interface",
-                font=("Segoe UI", 12),
-                text_color=self.colors['subtext'])
-        welcome_subtitle.pack(anchor="w", padx=20, pady=(10, 20))
-
-        # Stats cards container
-        stats_container = ctk.CTkFrame(content, fg_color=self.colors['bg'], corner_radius=0)
-        stats_container.pack(fill=ctk.X, pady=20)
+        # Add spacing
+        body_layout.addSpacing(16)
         
-        # Create three stat cards
-        def create_stat_card(title, value, icon):
-            card = ctk.CTkFrame(stats_container, fg_color="white", corner_radius=6)
-            card.pack(side=ctk.LEFT, fill=ctk.X, expand=True, padx=5, ipady=10, ipadx=10)
+        # Main Menu section
+        menu_label = QLabel("MAIN MENU")
+        menu_label.setFont(QFont("Inter", 9))
+        menu_label.setStyleSheet("color: #7E868C; margin-bottom: 4px; letter-spacing: 0.04em;")
+        body_layout.addWidget(menu_label)
+        
+        # Main menu items
+        body_layout.addWidget(create_sidebar_item("Inventory", "📊", self.display_inventory))  # Update to use display_inventory
+        # Create sidebar item for Add Product
+        add_product_btn = create_sidebar_item("Add Product", "➕", self.display_add_item, is_active=False)
+        body_layout.addWidget(add_product_btn)
+        # Create sidebar item for Remove Product
+        remove_product_btn = create_sidebar_item("Remove Product", "➖", self.display_remove_item, is_active=False)
+        body_layout.addWidget(remove_product_btn)
+        
+        # Add spacing
+        body_layout.addSpacing(16)
+        
+        # Settings section
+        settings_label = QLabel("SETTINGS")
+        settings_label.setFont(QFont("Inter", 9))
+        settings_label.setStyleSheet("color: #7E868C; margin-bottom: 4px; letter-spacing: 0.04em;")
+        body_layout.addWidget(settings_label)
+        
+        # Settings items
+        # Add the Manage Fields button
+        body_layout.addWidget(create_sidebar_item("Manage Fields", "🔧", self.display_options))
+        
+        # Remove the duplicate Clear Database buttons and use only one Clear All Data button
+        body_layout.addWidget(create_sidebar_item("Clear All Data", "🗑️", self.inventory_system.clear_database))
+        
+        body_layout.addStretch()
+        
+        # Footer section with login and exit
+        footer_frame = QFrame()
+        footer_frame.setStyleSheet("background-color: transparent;")
+        footer_layout = QVBoxLayout(footer_frame)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(8)
+        
+        # User profile section
+        if self.inventory_system.logged_in:
+            profile_frame = QFrame()
+            profile_frame.setStyleSheet("""
+                QFrame {
+                    background-color: #313538;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                }
+            """)
+            profile_layout = QHBoxLayout(profile_frame)
+            profile_layout.setContentsMargins(12, 8, 12, 8)
             
-            icon_label = ctk.CTkLabel(card, text=icon, font=("Segoe UI", 24),
-                    fg_color="white", text_color=self.colors['text'])
-            icon_label.pack(anchor="w", padx=20, pady=(15, 0))
+            # User avatar circle
+            avatar_label = QLabel("👤")
+            avatar_label.setStyleSheet("""
+                QLabel {
+                    background-color: #006FEE;
+                    color: white;
+                    border-radius: 15px;
+                    padding: 5px;
+                    min-width: 30px;
+                    min-height: 30px;
+                }
+            """)
+            avatar_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            title_label = ctk.CTkLabel(card, text=title, font=("Segoe UI", 11),
-                    fg_color="white", text_color=self.colors['subtext'])
-            title_label.pack(anchor="w", padx=20)
+            # Username and role
+            user_info_layout = QVBoxLayout()
+            user_info_layout.setSpacing(0)
             
-            value_label = ctk.CTkLabel(card, text=value, font=("Segoe UI", 20, "bold"),
-                    fg_color="white", text_color=self.colors['text'])
-            value_label.pack(anchor="w", padx=20, pady=(0, 15))
-
-        # Add sample stats (you can replace these with real data)
-        create_stat_card("Total Products", "--", "📦")
-        create_stat_card("Low Stock Items", "--", "⚠️")
-        create_stat_card("Total Value", "$--", "💰")
+            username_label = QLabel(str(self.crnt_user))
+            username_label.setFont(QFont("Inter", 9, QFont.Weight.Bold))
+            username_label.setStyleSheet("color: #ECEDEE;")
+            
+            role_label = QLabel("Admin")
+            role_label.setFont(QFont("Inter", 8))
+            role_label.setStyleSheet("color: #7E868C;")
+            
+            user_info_layout.addWidget(username_label)
+            user_info_layout.addWidget(role_label)
+            
+            profile_layout.addWidget(avatar_label)
+            profile_layout.addLayout(user_info_layout)
+            profile_layout.addStretch()
+            
+            # Online status indicator
+            status_label = QLabel("●")
+            status_label.setStyleSheet("color: #17C964;")  # Green dot for online status
+            profile_layout.addWidget(status_label)
+            
+            footer_layout.addWidget(profile_frame)
+        else:
+            # Login button (show only if not logged in)
+            login_btn = QPushButton(" ✅  Login")
+            login_btn.setFont(QFont("Inter", 10))
+            login_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #006FEE;
+                    color: white;
+                    border: none;
+                    text-align: left;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    min-height: 38px;
+                }
+                QPushButton:hover {
+                    background-color: #0057CC;
+                }
+            """)
+            login_btn.clicked.connect(self.display_login)
+            footer_layout.addWidget(login_btn)
         
-        # AI Assistant section
-        self.ai_frame = ctk.CTkFrame(self.content, fg_color="white", corner_radius=6)
-        self.ai_frame.pack(fill=ctk.BOTH, expand=True, pady=(20, 0), padx=5)
-        EmbedAI(self.ai, self.ai_frame)
-
-        # Footer
-        footer = ctk.CTkFrame(content, fg_color=self.colors['bg'], corner_radius=0)
-        footer.pack(side=ctk.BOTTOM, fill=ctk.X)
+        # Exit button
+        exit_btn = QPushButton(" 🚪  Exit Application")
+        exit_btn.setFont(QFont("Inter", 10))
+        exit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #F31260;
+                color: white;
+                border: none;
+                text-align: left;
+                padding: 8px 16px;
+                border-radius: 8px;
+                min-height: 38px;
+                margin-top: 4px;
+            }
+            QPushButton:hover {
+                background-color: #C50F50;
+            }
+        """)
+        exit_btn.clicked.connect(self.exit_application)
         
-        current_time = datetime.now().strftime("%d %b %Y")
-        version_label = ctk.CTkLabel(footer,
-                            text=f"v1.0 • {current_time}",
-                            font=("Segoe UI", 9),
-                            fg_color=self.colors['bg'],
-                            text_color=self.colors['subtext'])
-        version_label.pack(side=ctk.RIGHT)
+        footer_layout.addWidget(exit_btn)
+        
+        # Add watermark
+        watermark = QLabel("Made by CodeByte")
+        watermark.setFont(QFont("Inter", 8, QFont.Weight.Normal, True))  # Italic
+        watermark.setStyleSheet("color: #7E868C; margin-top: 8px;")
+        watermark.setAlignment(Qt.AlignmentFlag.AlignRight)
+        footer_layout.addWidget(watermark)
+        
+        sidebar_layout.addWidget(body_frame, 1)  # 1 is stretch factor
+        sidebar_layout.addWidget(footer_frame)
+        
+        # Add sidebar and QStackedWidget to main layout
+        main_layout.addWidget(sidebar)
+        main_layout.addWidget(self.stacked_widget, 1)  # 1 is stretch factor
 
-        self.root.mainloop()
+        # Show the main window
+        self.root.show()
+        
+    def run(self):
+        # Start the application
+        sys.exit(self.app.exec())
 
     def validate_input(self, value, validation_type, is_required, label, message_labels):
         if is_required and not value.strip():
-            message_labels[label].configure(text=f"{label} is required.")
+            message_labels[label].setText(f"{label} is required.")
             return False
         if not is_required and not value.strip():
             return True
         if validation_type == 'string' and not re.match(self.patterns['string'], value):
-            message_labels[label].configure(text=f"{label} contains invalid characters.")
+            message_labels[label].setText(f"{label} contains invalid characters.")
             return False
         if validation_type == 'int' and not re.match(self.patterns['int'], value):
-            message_labels[label].configure(text=f"{label} must be an integer.")
+            message_labels[label].setText(f"{label} must be an integer.")
             return False
         if validation_type == 'float' and not re.match(self.patterns['float'], value):
-            message_labels[label].configure(text=f"{label} must be a float (contain decimal point).")
+            message_labels[label].setText(f"{label} must be a float (contain decimal point).")
             return False
         return True
+
+    def refresh_views(self):
+        """Refresh all views to reflect database changes"""
+        # Refresh inventory view
+        if hasattr(self, 'inventory_view'):
+            self.inventory_view.display_all_items()
+        
+        # Refresh manage fields view
+        if hasattr(self, 'manage_fields_view'):
+            self.manage_fields_view.refresh_fields()
+        
+        # Refresh add item view by recreating it
+        if hasattr(self, 'add_product_view') and self.stacked_widget.currentWidget() == self.add_product_view:
+            index = self.stacked_widget.indexOf(self.add_product_view)
+            self.stacked_widget.removeWidget(self.add_product_view)
+            self.add_product_view = AddItemView(self.root, self.logic, self.inventory_system)
+            self.stacked_widget.insertWidget(index, self.add_product_view)
+            self.stacked_widget.setCurrentWidget(self.add_product_view)
+        
+        # Refresh remove item view
+        if hasattr(self, 'remove_product_view'):
+            # Assuming there's a refresh_items method in RemoveItemView
+            if hasattr(self.remove_product_view, 'refresh_items'):
+                self.remove_product_view.refresh_items()
+
+    # Add this function to your UI class to refresh dashboard statistics
+    def refresh_dashboard_stats(self):
+        # Find the stats container in the default view
+        stats_container = None
+        for i in range(self.default_view.layout().count()):
+            item = self.default_view.layout().itemAt(i)
+            if item.widget() and isinstance(item.widget(), QFrame):
+                if item.widget().layout() and isinstance(item.widget().layout(), QHBoxLayout):
+                    stats_container = item.widget()
+                    break
+                    
+        if not stats_container:
+            return
+            
+        # Update total products count
+        product_count = len(self.inventory_system.get_all_items())
+        stats_layout = stats_container.layout()
+        if stats_layout.count() > 0:
+            product_card = stats_layout.itemAt(0).widget()
+            for i in range(product_card.layout().count()):
+                content = product_card.layout().itemAt(i).widget()
+                if isinstance(content, QFrame):
+                    for j in range(content.layout().count()):
+                        widget = content.layout().itemAt(j).widget()
+                        if isinstance(widget, QLabel) and widget.font().pointSize() == 20:
+                            widget.setText(str(product_count))
+                            break
+        
+        # Update total value
+        total_value = self.calculate_total_value()
+        if stats_layout.count() > 2:
+            value_card = stats_layout.itemAt(2).widget()
+            for i in range(value_card.layout().count()):
+                content = value_card.layout().itemAt(i).widget()
+                if isinstance(content, QFrame):
+                    for j in range(content.layout().count()):
+                        widget = content.layout().itemAt(j).widget()
+                        if isinstance(widget, QLabel) and widget.font().pointSize() == 20:
+                            widget.setText(total_value)
+                            break
+
+    # Move calculate_total_value out of the display_menu method and make it a class method
+    def calculate_total_value(self):
+        items_df = self.inventory_system.get_all_items()
+        if 'price' in items_df.columns and 'quantity' in items_df.columns:
+            # Convert price to float and multiply by quantity
+            items_df['price'] = items_df['price'].astype(float)
+            items_df['quantity'] = items_df['quantity'].astype(float)
+            total_value = (items_df['price'] * items_df['quantity']).sum()
+            return f"${total_value:,.2f}"
+        return "$0.00"
 
