@@ -1,57 +1,21 @@
-[2025-03-25 16:06:02] Field Added: field_name:test, entry_type:small_box, validation_type:int, required:0
-[2025-03-25 16:09:21] Item Added: field_name:{'id': '2', 'name': 'iphone 12', 'quantity': '40', 'price': '999.99', 'category': 'phones', 'brand': 'Apple', 'description': 'hello', 'test': ''}
-[2025-03-25 16:20:06]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:20:58]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:21:46]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:23:30]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:24:06] Item Added: field_name:{'id': '3', 'name': 'Iphone X', 'quantity': '12', 'price': '1199.00', 'category': 'Phones', 'brand': 'Apple', 'description': 'Iphone X 64 GB and 128 GB', 'test': ''}
-[2025-03-25 16:24:18] Item Removed: id:3, count:2
-[2025-03-25 16:24:32] Field Removed: field_name:test
-[2025-03-25 16:24:39]  -- LOGOUT: user:N/A
-[2025-03-25 16:26:23]  -- LOGOUT: user:N/A
-[2025-03-25 16:26:49]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:27:17]  -- LOGOUT: user:N/A
-[2025-03-25 16:27:26]  -- LOGOUT: user:N/A
-[2025-03-25 16:27:38]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:51:47]  -- LOGOUT: user:N/A
-[2025-03-25 16:52:14]  -- LOGOUT: user:N/A
-[2025-03-25 16:52:27]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:53:38]  -- LOGOUT: user:N/A
-[2025-03-25 16:53:43]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:54:39]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:54:46]  -- LOGOUT: user:N/A
-[2025-03-25 16:55:02]  -- LOGIN SUCCESS: username: 123
-[2025-03-25 16:55:32] Item Added: field_name:{'id': '5', 'name': 'Tab A', 'quantity': '3', 'price': '599.78', 'category': 'tablet', 'brand': 'Samsung', 'description': '128GB only'}
-[2025-03-25 16:55:45] Item Removed: id:5, count:2
-[2025-03-25 16:55:48]  -- LOGOUT: user:N/A
-[2025-03-26 16:18:00]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 16:20:05]  -- LOGOUT: user:N/A
-[2025-03-26 16:58:27]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 16:59:45] Item Removed: id:5, count:1
-[2025-03-26 17:03:04]  -- LOGOUT: user:N/A
-[2025-03-26 17:03:59]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 17:11:34]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 17:19:08]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 17:19:15] Item Modified: id:1, new_data:{'id': '1', 'name': 'iphone 8', 'quantity': '35', 'price': '549.99', 'category': 'Phones', 'brand': 'Apple', 'description': '64GB', 'test': 'None'}
-[2025-03-26 17:19:20]  -- LOGOUT: user:N/A
-[2025-03-26 17:44:28]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 17:44:37]  -- LOGOUT: user:N/A
-[2025-03-26 21:51:18]  -- LOGOUT: user:N/A
-[2025-03-26 22:33:48]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 22:38:44]  -- LOGOUT: user:N/A
-[2025-03-26 22:47:04]  -- LOGIN FAILED: attempted username: 123, attempted password: 
-[2025-03-26 22:47:07]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 22:51:07] Item Added: field_name:{'id': '4', 'name': 'Macbook Air M3', 'quantity': '2', 'price': '999.00', 'category': 'laptops', 'brand': 'Apple', 'description': '256GB and 512GB'}
-[2025-03-26 23:07:16]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 23:08:47]  -- LOGOUT: user:N/A
-[2025-03-26 23:13:06]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 23:15:16]  -- LOGOUT: user:N/A
-[2025-03-26 23:15:41]  -- LOGIN SUCCESS: username: 123
-[2025-03-26 23:17:46] Item Modified: id:5, new_data:{'id': '5', 'name': 'Tab A', 'quantity': '0', 'price': '599.78', 'category': 'tablet', 'brand': 'Samsung', 'description': '128GB and 2TB', 'test': 'None'}
-[2025-03-26 23:45:51]  -- LOGIN SUCCESS: username: 123
-[2025-03-28 10:41:36]  -- LOGIN SUCCESS: username: 123
-[2025-03-28 11:04:29]  -- LOGIN SUCCESS: username: 123
-[2025-03-28 11:24:25]  -- LOGIN SUCCESS: username: 123
-[2025-03-28 11:29:30]  -- LOGOUT: user:N/A
-[2025-03-28 11:43:33]  -- LOGIN SUCCESS: username: 123
-[2025-03-28 11:57:13]  -- LOGOUT: user:N/A
+[2025-04-02 23:43:43] Images table created successfully.
+[2025-04-02 23:43:53] Account credentials updated successfully: New username '123'.
+[2025-04-02 23:43:54] Login successful: Username '123'.
+[2025-04-02 23:45:53] Item Added: {'id': '1', 'name': 'Iphone 4S', 'brand': 'Apple', 'category': 'Phones', 'description': 'Storage: 8GB, 16GB, and 32GB\n- Has front selfie camera\n- Comes with Siri\n- Color Options: Black and White', 'price': '499.00', 'quantity': '40', 'images': ['C:/Users/natht/Downloads/112004_sp643_iphone4s_color_white.jpg', 'C:/Users/natht/Downloads/112004_sp643_iphone4s_color_black.jpg']}
+[2025-04-02 23:47:37] Item Added: {'id': '2', 'name': 'Galaxy S20 Ultra', 'brand': 'Samsung', 'category': 'Phones', 'description': 'Brand New and Used, 8GB RAM', 'price': '899.00', 'quantity': '4', 'images': ['C:/Users/natht/Downloads/10-1.jpg', 'C:/Users/natht/Downloads/61tNLCoMMBL._AC_UF1000,1000_QL80_.jpg']}
+[2025-04-02 23:49:16] Item Added: {'id': '3', 'name': 'Galaxy S21 Ultra', 'brand': 'Samsung', 'category': 'Phones', 'description': '12GB RAM, 256GB and 512GB storage options available', 'price': '999.00', 'quantity': '2', 'images': ['C:/Users/natht/Downloads/s21-ultra-5.png', 'C:/Users/natht/Downloads/galaxy-s21-ultra-phantom-silver.jpg', 'C:/Users/natht/Downloads/71VeQ9PzOSL.jpg']}
+[2025-04-02 23:50:24] Item Added: {'id': '4', 'name': 'Galaxy S25 Ultra', 'brand': 'Samsung', 'category': 'Phones', 'description': '16GB RAM, 512GB and 1TB storage options', 'price': '1399.00', 'quantity': '25', 'images': ['C:/Users/natht/Downloads/619M95-ZUAL._AC_UF894,1000_QL80_.jpg']}
+[2025-04-02 23:50:33]  -- LOGOUT: user:123
+[2025-04-02 23:53:52] Login successful: Username '123'.
+[2025-04-02 23:55:07] Item Added: {'id': '5', 'name': 'XPS 13 (2024)', 'brand': 'Dell', 'category': 'Laptops', 'description': '512GB only, Brand New', 'price': '899.00', 'quantity': '3', 'images': ['C:/Users/natht/Downloads/BqDKDfg64ejuYgQkSMkxph.jpg']}
+[2025-04-02 23:56:39] Item Added: {'id': '6', 'name': 'XPS 16 (2023)', 'brand': 'Dell', 'category': 'Laptops', 'description': '512GB and 1TB storage options.\n8GB RAM, and 16GB Ram Options', 'price': '1199.99', 'quantity': '11', 'images': ['C:/Users/natht/Downloads/Diablo-Platinum-v2.jpg']}
+[2025-04-02 23:57:35] Item Added: {'id': '7', 'name': 'Iphone 8 Plus', 'brand': 'Apple', 'category': 'Phones', 'description': '64GB, and 256GB storage options, Apple A11 BIONIC Chip', 'price': '599.99', 'quantity': '3'}
+[2025-04-02 23:58:52] Item Added: {'id': '8', 'name': 'Iphone XS', 'brand': 'Apple', 'category': 'Phones', 'description': '64GB and 256GB, Apple A12 BIONIC Chip', 'price': '899.00', 'quantity': '1', 'images': ['C:/Users/natht/Downloads/71-3DNnmJML._AC_UF894,1000_QL80_.jpg']}
+[2025-04-03 00:00:38] Item Added: {'id': '9', 'name': 'Legion Slim 5', 'brand': 'Lenovo', 'category': 'Laptops', 'description': "Gaming Laptop, Nvidia 4080 and 4090 GPU options. With Intel Core i-7 and Core i-9 CPU's", 'price': '1799.00', 'quantity': '3', 'images': ['C:/Users/natht/Downloads/06s81JTeU4iaYWJcBGo5yjN-1.fit_scale.size_760x427.v1690314206.jpg']}
+[2025-04-03 00:03:02] Item Added: {'id': '10', 'name': 'Pavilion TP01-5029', 'brand': 'HP', 'category': 'Desktop PC', 'description': 'Nvidia RTX 3060. 512GB, 1TB, and 2TB storage options', 'price': '1699.00', 'quantity': '2', 'images': ['C:/Users/natht/Downloads/71Ltusa0++L._AC_UF894,1000_QL80_.jpg']}
+[2025-04-03 00:04:10] Item Added: {'id': '11', 'name': 'Macbook Air M1', 'brand': 'Apple', 'category': 'Laptops', 'description': '256GB storage. 8GB and 16GB Ram Options', 'price': '699.00', 'quantity': '5', 'images': ['C:/Users/natht/Downloads/71jG+e7roXL.jpg']}
+[2025-04-03 00:05:59] Item Added: {'id': '12', 'name': 'Macbook Air M2 15"', 'brand': 'Apple', 'category': 'Laptops', 'description': '16GB RAM, 512GB SSD Storage', 'price': '999.00', 'quantity': '4', 'images': ['C:/Users/natht/Downloads/s-l400.jpg']}
+[2025-04-03 00:08:46] Login successful: Username '123'.
+[2025-04-03 00:09:16]  -- LOGOUT: user:123
+[2025-04-03 00:09:38] Login successful: Username '123'.
+[2025-04-03 00:10:01]  -- LOGOUT: user:123

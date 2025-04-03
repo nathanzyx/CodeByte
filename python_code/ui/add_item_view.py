@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
                             QPushButton, QFrame, QMessageBox, QScrollArea, QWidget,
-                            QGridLayout, QTextEdit)
+                            QGridLayout, QTextEdit, QFileDialog)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QRegularExpressionValidator
+from PyQt6.QtGui import QFont, QRegularExpressionValidator, QPixmap
 from PyQt6.QtCore import QRegularExpression
 
 class AddItemView(QWidget):  # Changed from QDialog to QWidget
@@ -133,6 +133,10 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         
         # Create form fields based on the layout in the image
         for field_name, position in field_positions.items():
+            # Skip images field
+            if(field_name == "images"):
+                return
+            
             row, col = position
             
             # Field container
@@ -256,23 +260,56 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         bottom_container = QHBoxLayout()
         bottom_container.setSpacing(20)
         
-        # Image upload section (left)
+        # Image upload section
         image_container = QFrame()
         image_container.setStyleSheet(f"""
             background-color: {colors['input_bg']};
             border-radius: 4px;
             border: 1px solid {colors['border']};
         """)
-        image_container.setFixedHeight(150)
-        image_container.setMinimumWidth(200)
-        image_layout = QVBoxLayout(image_container)
-        
-        image_label = QLabel("IMAGE")
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        image_label.setStyleSheet(f"color: {colors['text']}; font-size: 16px; font-weight: bold;")
-        image_layout.addWidget(image_label)
-        
+        # Create a vertical layout for the image container to hold the images
+        image_container_layout = QVBoxLayout(image_container)
+        image_container_layout.setContentsMargins(10, 10, 10, 10)
+        image_container_layout.setSpacing(10)
+        # Make upload label for the top
+        self.upload_label = QLabel("Click to Upload Image")
+        self.upload_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.upload_label.setStyleSheet(f"color: {colors['text']}; font-size: 14px; font-weight: bold;")
+        self.upload_label.mousePressEvent = self.upload_image  # Make it clickable
+        image_container_layout.addWidget(self.upload_label)
+        # Wdiget to hold the images
+        self.image_list_widget = QWidget()
+        self.image_layout = QVBoxLayout(self.image_list_widget)
+        self.image_layout.setContentsMargins(5, 5, 5, 5)
+        self.image_layout.setSpacing(10)
+        # Scrolling
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.image_list_widget)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                border: none;
+                background-color: transparent;
+            }}
+            QScrollBar:vertical {{
+                background: {colors['primary']};
+                width: 8px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #4B5563;
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+        """)
+        image_container_layout.addWidget(scroll_area)
         bottom_container.addWidget(image_container)
+        
+        
+        
         
         # Custom fields section (right)
         custom_fields_container = QFrame()
@@ -329,7 +366,7 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
                 print(f"Content of all_fields: {all_fields}")
                 
                 # Define standard fields that should be excluded
-                standard_fields = ['id', 'name', 'brand', 'category', 'description', 'price', 'quantity']
+                standard_fields = ['id', 'name', 'brand', 'category', 'description', 'price', 'quantity', 'images']
                 
                 # Check if we have fields to process
                 if all_fields:
@@ -492,6 +529,88 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         container_layout.addWidget(submit_btn)
         
         main_layout.addWidget(main_container)
+    
+    
+    def upload_image(self, event):
+    
+        file_dialog = QFileDialog(self)
+        file_dialog.setNameFilters(["Image files (*.png *.jpg *.jpeg *.bmp *.gif)"]) # Types of files we allow for upload
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)  # Allow selecting multiple files
+
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()  # Get the list of selected image paths for validation
+
+            # make image paths list if it doesn't exist
+            if not hasattr(self, "image_paths"):
+                self.image_paths = []
+
+            # Add the new images to the list
+            for image_path in selected_files:
+                #Ensure image path does not already exist in the list to avoid duplicates
+                if image_path not in self.image_paths:
+                    self.image_paths.append(image_path)
+
+            # Refresh image container to display the updated list of images
+            self.refresh_image_container()
+            
+            
+    def refresh_image_container(self):
+        # Clear the current layout in the scroll area
+        while self.image_layout.count():
+            child = self.image_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        # For each image, create a container with the remove button and thumbnail
+        for image_path in self.image_paths:
+            image_item_container = QFrame()
+            image_item_layout = QHBoxLayout(image_item_container)
+            image_item_layout.setContentsMargins(5, 5, 5, 5)
+            image_item_layout.setSpacing(10)
+
+            # Remove button on the left
+            remove_button = QPushButton("Remove")
+            remove_button.setFixedSize(80, 30)
+            remove_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #EF4444;;
+                    color: white;
+                    border: none;
+                    border-radius: 3px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #DC2626;
+                }
+            """
+            )
+            remove_button.clicked.connect(lambda _, path=image_path: self.remove_image(path))
+            image_item_layout.addWidget(remove_button)
+
+            # Thumbnail for the iamge
+            pixmap = QPixmap(image_path)
+            thumbnail = QLabel()
+            thumbnail.setPixmap(pixmap.scaled(
+                80, 80,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            ))
+            thumbnail.setStyleSheet("border: 0px solid #374151; margin: 5px;")
+            image_item_layout.addWidget(thumbnail)
+
+            # Add image item container to the layout
+            self.image_layout.addWidget(image_item_container)
+
+        # Stretch at the end to push the items upward
+        self.image_layout.addStretch()
+    
+    #
+    # Removes an image from the list
+    #
+    def remove_image(self, image_path):
+        if hasattr(self, "image_paths") and image_path in self.image_paths:
+            self.image_paths.remove(image_path)
+            self.refresh_image_container()
         
     def cancel_action(self):
         # Go back to the default view
@@ -501,6 +620,19 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         
         if parent and hasattr(parent, 'stacked_widget'):
             parent.stacked_widget.setCurrentWidget(parent.default_view)
+    
+    #
+    #   Clear the images from the UI container and List
+    #
+    def clear_images(self):
+        # Clear the image paths
+        self.image_paths = []
+
+        # Remove all widgets from the image container
+        while self.image_layout.count():
+            child = self.image_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
         
     def add_item_submit(self):
         # Clear previous error messages
@@ -590,6 +722,9 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
         if not validation_passed:
             return
         
+        if hasattr(self, "image_paths") and self.image_paths:
+            product_data["images"] = self.image_paths  # Add the list of image paths to the product data list
+        
         try:
             # Make sure all required fields are present (case-insensitive check)
             required_fields = ['id', 'name', 'quantity', 'price', 'category', 'brand', 'description']
@@ -613,6 +748,8 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
                     entry.clear()
                 else:
                     entry.clear()
+            # Clear The Images
+            self.clear_images()
                 
             QMessageBox.information(self, "Success", "Item added successfully.")
             
@@ -629,3 +766,5 @@ class AddItemView(QWidget):  # Changed from QDialog to QWidget
                 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to add item: {str(e)}")
+            
+            

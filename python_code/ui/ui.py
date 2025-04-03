@@ -328,7 +328,7 @@ class UI:
         
         # Add default view and inventory view to QStackedWidget
         self.stacked_widget.addWidget(self.default_view)
-        self.inventory_view = InventoryView(self.root, self.inventory_system)  # Use the new InventoryView
+        self.inventory_view = InventoryView(self.root, self.inventory_system, self.ai)  # Use the new InventoryView
         self.stacked_widget.addWidget(self.inventory_view)
         
         # Create add product view and add it to stacked widget
@@ -351,14 +351,14 @@ class UI:
     #
     #   This function returns the users login status along with a message if not logged in
     #
-    def is_logged_in(self):
-        if not self.inventory_system.logged_in:
-            QMessageBox.critical(self.root, "Login Required", "You must be logged in to perform this action.")
-            return False
-        return True
+    def is_authenticated(self):
+        if self.inventory_system.logged_in or not self.inventory_system.login_required():
+            return True
+        QMessageBox.critical(self.root, "Login Required", "You must be logged in to perform this action.")
+        return False
         
     def display_inventory(self):
-        if not self.is_logged_in():
+        if not self.is_authenticated():
             return
         # Switch to the inventory view in the stacked widget
         self.stacked_widget.setCurrentWidget(self.inventory_view)
@@ -367,7 +367,7 @@ class UI:
         self.refresh_views()
     
     def display_add_item(self):
-        if not self.is_logged_in():
+        if not self.is_authenticated():
             return
         # Switch to the add product view in the stacked widget
         self.stacked_widget.setCurrentWidget(self.add_product_view)
@@ -380,7 +380,7 @@ class UI:
             self.stacked_widget.setCurrentWidget(self.add_product_view)
     
     def display_remove_item(self):
-        if not self.is_logged_in():
+        if not self.is_authenticated():
             return
         # Switch to the remove product view in the stacked widget
         self.stacked_widget.setCurrentWidget(self.remove_product_view)
@@ -403,7 +403,7 @@ class UI:
                 self.stacked_widget.setCurrentWidget(self.remove_product_view)
     
     def display_options(self):
-        if not self.is_logged_in():
+        if not self.is_authenticated():
             return
         # Create the manage fields view and add it to the stacked widget if it doesn't exist
         if not hasattr(self, 'manage_fields_view'):
@@ -413,25 +413,25 @@ class UI:
         self.stacked_widget.setCurrentWidget(self.manage_fields_view)
     
     def display_login(self):
-        if not self.inventory_system.logged_in:
-            login_dialog = LoginView(self.root, self.logic, self.inventory_system)
-            login_dialog.exec()
+        
+        login_dialog = LoginView(self.root, self.logic, self.inventory_system)
+        login_dialog.exec()
             
-            # Refresh the menu after successful login
-            if self.inventory_system.logged_in:
-                self.crnt_user = self.inventory_system.username  # Update current user
-                # Store current window size
-                current_size = self.root.size()
-                # Clear and rebuild the menu
-                if self.root.centralWidget():
-                    self.root.centralWidget().deleteLater()
-                self.display_menu()
-                # Restore the window size
-                self.root.resize(current_size)
+        # Refresh the menu after successful login
+        if self.inventory_system.logged_in:
+            self.crnt_user = self.inventory_system.username  # Update current user
+            # Store current window size
+            current_size = self.root.size()
+            # Clear and rebuild the menu
+            if self.root.centralWidget():
+                self.root.centralWidget().deleteLater()
+            self.display_menu()
+            # Restore the window size
+            self.root.resize(current_size)
                 
-                # Add this to refresh the AI chat interface
-                if hasattr(self, 'embed_ai'):
-                    self.embed_ai.update_login_state()
+            # Add this to refresh the AI chat interface
+            if hasattr(self, 'embed_ai'):
+                self.embed_ai.update_login_state()
     
     def display_ai_assistant(self):
         # Remove this method or modify it to avoid adding a layout twice
@@ -691,6 +691,23 @@ class UI:
             status_label = QLabel("●")
             status_label.setStyleSheet("color: #17C964;")  # Green dot for online status
             profile_layout.addWidget(status_label)
+            
+            edit_btn = QPushButton("Profile")
+            edit_btn.setFont(QFont("Inter", 9))
+            edit_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #006FEE;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                }
+                QPushButton:hover {
+                    background-color: #0057CC;
+                }
+            """)
+            edit_btn.clicked.connect(self.display_login)
+            profile_layout.addWidget(edit_btn)
             
             footer_layout.addWidget(profile_frame)
         else:

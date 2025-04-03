@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QWidget
 from datetime import datetime
 from ui import *
@@ -20,25 +21,27 @@ class DatabaseSystem:
         # Define SQLite database file name and table names for reference
         self.db = file
         self.items_table = "products"
+        self.images_table = "images"
         self.fields_table = "fields"
+        self.login_table = "login"
         
         # We get the log file in append mode
         self.log_file = self.getLogFile(name, ".txt")
         
-        self.username = "admin"
-        self.password = "321"
+        self.username = ""
         self.logged_in = False
         
         # Create/Connect SQLite3 Database "products" (and table)
         self.conn = sqlite3.connect(self.db)
         self.cursor = self.conn.cursor()
         
-        # Check if main table 'product' exists
+        # Check if main table 'product' exists & Create 'products table if it does not exist'
         products_exists = self.table_exists(self.items_table)
-        # If the 'products' table does not yet exist, we create it and a new table for fields
         if not products_exists:
             self.create_fields_table()
             self.create_products_table()
+            self.create_images_table()
+            self.create_login_table()
     
     #
     #   This function returns the log file for the database in append mode
@@ -88,7 +91,7 @@ class DatabaseSystem:
         self.cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS {self.fields_table} (
                 field_name TEXT PRIMARY KEY,
-                entry_type TEXT CHECK(entry_type IN ('small_box', 'large_box')),
+                entry_type TEXT CHECK(entry_type IN ('small_box', 'large_box', 'image_box')),
                 validation_type TEXT CHECK(validation_type IN ('string', 'int', 'float')),
                 required INTEGER CHECK(required IN (0, 1))
             )
@@ -103,11 +106,135 @@ class DatabaseSystem:
             ('price', 'small_box', 'float', 1),
             ('category', 'small_box', 'string', 1),
             ('brand', 'small_box', 'string', 1),
-            ('description', 'large_box', 'string', 0)
+            ('description', 'large_box', 'string', 0),
+            # ('images', 'image_box', 'string', 0)
         ]
         # Insert the default input fields into the database's field table
         self.cursor.executemany(f"INSERT OR IGNORE INTO {self.fields_table} VALUES (?, ?, ?, ?)", default_fields)
         self.conn.commit()
+    
+    
+    #
+    #   This function creates the login table which holds:
+    #       - username
+    #       - password
+    #       - login required for performing database operations
+    #
+    def create_login_table(self):
+        # Create the login table if it doesn't already exist
+        self.cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS {self.login_table} (
+                username TEXT PRIMARY KEY,
+                password TEXT NOT NULL,
+                requires_login INTEGER CHECK(requires_login IN (0, 1)) NOT NULL
+            )
+        ''')
+        self.conn.commit()
+        
+        # Insert default login credentials if the table is empty
+        self.cursor.execute(f"SELECT COUNT(*) FROM {self.login_table}")
+        if self.cursor.fetchone()[0] == 0:
+            default_login = ("", "", 0)  # Default username, password, and requires_login flag
+            self.cursor.execute(f"INSERT INTO {self.login_table} VALUES (?, ?, ?)", default_login)
+            self.conn.commit()
+    
+    
+    #
+    #   Returns whether logging in is required to perform database actions
+    #
+    def login_required(self):
+        try:
+            # Get login required value
+            self.cursor.execute(f"SELECT requires_login FROM {self.login_table} LIMIT 1")
+            result = self.cursor.fetchone()
+
+            # Return true if the result is valid and login is set to required
+            if result and result[0] == 1:
+                return True
+            return False
+        except Exception as e:
+            self.log_message(f"Error checking login requirement: {str(e)}")
+            return False
+    
+    #
+    #   Returns whether account exists
+    #
+    def account_exists(self):
+        try:
+            # Query the login table for any non-empty username and password
+            self.cursor.execute(f"SELECT username, password FROM {self.login_table} LIMIT 1")
+            result = self.cursor.fetchone()
+
+            # Check if username and password are not empty
+            if result and result[0] and result[1]:
+                return True
+            return False
+        except Exception as e:
+            self.log_message(f"Error checking account existence: {str(e)}")
+            return False
+    
+    #
+    #   Modifies account credentials if the old credentials match
+    #
+    def set_account_credentials(self, oldUsername, oldPassword, newUsername, newPassword, login_required):
+        try:
+            # Get password from the login table
+            self.cursor.execute(f"SELECT password FROM {self.login_table} WHERE username=?", (oldUsername,))
+            result = self.cursor.fetchone()
+
+            # If username exists and password matches the usernames stored password
+            if not result or result[0] != oldPassword:
+                self.log_message("Failed to update credentials: Invalid old username or password.")
+                return False
+
+            # Update account credentials with the new values
+            self.cursor.execute(f'''
+                UPDATE {self.login_table}
+                SET username=?, password=?, requires_login=?
+                WHERE username=?
+            ''', (newUsername, newPassword, login_required, oldUsername))
+            self.conn.commit()
+
+            self.log_message(f"Account credentials updated successfully: New username '{newUsername}'.")
+            return True
+        except Exception as e:
+            self.log_message(f"Error updating account credentials: {str(e)}")
+            return False
+        
+        
+    #
+    #   Attempts to log in the user using credentials
+    #
+    def login(self, username, password):
+        try:
+            # Query the login table for the provided username
+            self.cursor.execute(f"SELECT password, requires_login FROM {self.login_table} WHERE username=?", (username,))
+            result = self.cursor.fetchone()
+
+            # If no user is found or login is not required
+            if not result:
+                self.log_message(f"Login failed: Username '{username}' not found.")
+                return False
+            # if result[1] == 0:  # requires_login is False
+            #     self.log_message("Login not required, access granted.")
+            #     return True
+
+            # Check if the provided password matches the stored password
+            stored_password = result[0]
+            if password == stored_password:
+                self.logged_in = True
+                self.log_message(f"Login successful: Username '{username}'.")
+                
+                # set database username
+                self.username = username
+                
+                return True
+            else:
+                self.log_message(f"Login failed: Incorrect password for username '{username}'.")
+                return False
+        except Exception as e:
+            self.log_message(f"Login error: {str(e)}")
+            return False
     
     
     
@@ -126,11 +253,30 @@ class DatabaseSystem:
         for field, field_type in fields:
             sql_type = {"string": "TEXT", "int": "INTEGER", "float": "REAL"}[field_type]
             column_definitions.append(f"{field} {sql_type}")
+           
+        # Add image column to the database 
+        # column_definitions.append("images TEXT")
 
         # Create table with the new fields
         sql = f"CREATE TABLE IF NOT EXISTS {self.items_table} ({', '.join(column_definitions)})"
         self.cursor.execute(sql)
         self.conn.commit()
+        
+    def create_images_table(self):
+        try:
+            self.cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {self.images_table} (
+                    image_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id INTEGER NOT NULL,
+                    image_data BLOB NOT NULL,
+                    FOREIGN KEY (product_id) REFERENCES {self.items_table}(id) ON DELETE CASCADE
+                )
+            """)
+            self.conn.commit()
+            self.log_message("Images table created successfully.")
+        except Exception as e:
+            self.log_message(f"Error creating images table: {str(e)}")
+            raise e
         
         
         
@@ -211,9 +357,11 @@ class DatabaseSystem:
         field_info = {row[0]: row[1] for row in self.cursor.fetchall()}
         
         print(f"Field info from database: {field_info}")
+        print(f"Product info from database: {product_data}")
         
-        # Get all field names
-        fields = list(field_info.keys())
+        # Get all field names (except form images)
+        # fields = list(field_info.keys())
+        fields = [field for field in field_info.keys() if field != "images"]
         
         # Check for missing fields
         missing_fields = [field for field in fields if field not in product_data]
@@ -229,18 +377,46 @@ class DatabaseSystem:
             print(f"Empty required fields: {empty_required_fields}")
             return False
     
+    
+    
         # Prepare dynamic SQL query
         placeholders = ", ".join(["?" for _ in fields])
         field_names = ", ".join(fields)
         values = tuple(product_data.get(field, "") for field in fields)
-    
-        # Add items to database
-        self.cursor.execute(f"INSERT INTO {self.items_table} ({field_names}) VALUES ({placeholders})", values)
-        self.conn.commit()
         
-        # LOG MESSAGE
-        self.log_message(f"Item Added: field_name:{str(product_data)}")
-        return True
+        try:
+            # Insert the product data into the products table
+            self.cursor.execute(f"INSERT INTO {self.items_table} ({field_names}) VALUES ({placeholders})", values)
+            product_id = self.cursor.lastrowid  # Get the ID of the newly inserted product
+
+            # Insert image data into the images table
+            if "images" in product_data and product_data["images"]:
+                for image_path in product_data["images"]:
+                    try:
+                        with open(image_path, "rb") as image_file:
+                            image_data = image_file.read()  # Read the image as binary data
+                            self.cursor.execute(f"INSERT INTO {self.images_table} (product_id, image_data) VALUES (?, ?)", (product_id, image_data))
+                    except Exception as e:
+                        self.log_message(f"Error reading image file '{image_path}': {str(e)}")
+                        print(f"Error reading image file '{image_path}': {str(e)}")
+
+            self.conn.commit()
+            
+            # LOG MESSAGE
+            self.log_message(f"Item Added: {product_data}")
+            return True
+        except Exception as e:
+            self.log_message(f"Error adding item to database: {str(e)}")
+            print(f"Error adding item to database: {str(e)}")
+            return False
+    
+        # # Add items to database
+        # self.cursor.execute(f"INSERT INTO {self.items_table} ({field_names}) VALUES ({placeholders})", values)
+        # self.conn.commit()
+        
+        # # LOG MESSAGE
+        # self.log_message(f"Item Added: field_name:{str(product_data)}")
+        # return True
     
     
     
@@ -275,7 +451,44 @@ class DatabaseSystem:
         
         self.log_message(f"Item Removed: id:{str(item_id)}, count:{str(item_count)}")
         
+    #
+    #   Returns all images for a product specified by its ID in the form of a list of binary data
+    #
+    def get_images_for_product(self, product_id):
+        try:
+            self.cursor.execute(f"SELECT image_data FROM {self.images_table} WHERE product_id = ?", (product_id,))
+            images = self.cursor.fetchall()
+            return [image[0] for image in images]  # Return a list of binary image data
+        except Exception as e:
+            self.log_message(f"Error retrieving images for product_id {product_id}: {str(e)}")
+            raise e
+    #
+    #   Removes an image from a product specified by its ID, and matching image data. Does not return status of whether the image was or wasn't found
+    #
+    def remove_image(self, product_id, image_data):
+        try:
+            self.cursor.execute(f"DELETE FROM {self.images_table} WHERE product_id = ? AND image_data = ?", (product_id, image_data))
+            self.conn.commit()
+            self.log_message(f"Image removed for product_id {product_id}")
+        except Exception as e:
+            self.log_message(f"Error removing image for product_id {product_id}: {str(e)}")
+            raise e
     
+    #
+    #   Adds an image to a product specified by its ID
+    #
+    def add_image_to_product(self, product_id, image_data):
+        try:
+            self.cursor.execute(f"INSERT INTO {self.images_table} (product_id, image_data) VALUES (?, ?)", (product_id, image_data))
+            self.conn.commit()
+            self.log_message(f"Image added for product_id {product_id}")
+        except Exception as e:
+            self.log_message(f"Error adding image for product_id {product_id}: {str(e)}")
+            raise e
+        
+    #
+    #   Returns all items as a dataframe
+    #
     def get_all_items(self):
         # Execute query to select all records from the products table
         self.cursor.execute(f"SELECT * FROM {self.items_table}")
@@ -326,6 +539,12 @@ class DatabaseSystem:
         values.append(item_id)
         
         try:
+            # Check if the ID is being updated (so the linking images in the image table have their key updated)
+            new_id = new_data.get("id")
+            if new_id and new_id != item_id:
+                # Update the product ID in the images table first
+                self.cursor.execute(f"UPDATE {self.images_table} SET product_id=? WHERE product_id=?", (new_id, item_id))
+            
             # Execute update statement
             sql = f"UPDATE {self.items_table} SET {set_clause} WHERE id=?"
             self.cursor.execute(sql, values)
@@ -338,7 +557,33 @@ class DatabaseSystem:
         except Exception as e:
             print(f"Error updating item: {e}")
             return False
-          
+        
+        
+    #
+    #    This function returns a dataframe of the result of the list of ids it was given
+    #
+    def get_products_by_id(self, ids):
+        if not ids:
+            # if ids are empty, returns an empty dataframe
+            return pd.DataFrame(columns=[desc[0] for desc in self.cursor.description])
+
+        try:
+            # Make Placeholder
+            placeholders = ", ".join(["?"] * len(ids))
+            sql = f"SELECT * FROM {self.items_table} WHERE id IN ({placeholders})"
+            
+            self.cursor.execute(sql, ids)
+            results = self.cursor.fetchall()
+
+            # Get columns
+            columns = [desc[0] for desc in self.cursor.description]
+
+            return pd.DataFrame(results, columns=columns)
+        except Exception as e:
+            self.log_message(f"Error retrieving products by IDs: {str(e)}")
+            raise e
+        
+        
     #
     #   This function is temporary for testing, it simply clears the 'products' table of the database
     #   You can also just delete the database file for a fresh start
@@ -356,6 +601,7 @@ class DatabaseSystem:
             try:
                 # Drop the products table completely instead of just deleting rows
                 self.cursor.execute(f"DROP TABLE IF EXISTS {self.items_table}")
+                self.cursor.execute(f"DROP TABLE IF EXISTS {self.images_table}")
                 
                 # Clear custom fields (but keep the built-in fields)
                 built_in_fields = ["brand", "category", "description", "id", "name", "price", "quantity"]
@@ -364,6 +610,7 @@ class DatabaseSystem:
                 
                 # Recreate the products table with the remaining fields
                 self.create_products_table()
+                self.create_images_table()
                 
                 self.conn.commit()
                 QMessageBox.information(None, "Success", "Database cleared successfully. All items and custom fields have been removed.")
@@ -376,65 +623,62 @@ class DatabaseSystem:
                 return False
         return False
 
-
-# Make sure this method is properly indented to be part of the DatabaseSystem class
-def remove_field_from_database(self, field_name):
-    """Remove a field from the database"""
-    try:
-        # First, check if the field exists
-        self.cursor.execute(f"SELECT COUNT(*) FROM {self.fields_table} WHERE field_name=?", (field_name,))
-        if self.cursor.fetchone()[0] == 0:
-            raise ValueError(f"Field '{field_name}' does not exist")
+    def remove_field_from_database(self, field_name):
+        try:
+            # check if field exists
+            self.cursor.execute(f"SELECT COUNT(*) FROM {self.fields_table} WHERE field_name=?", (field_name,))
+            if self.cursor.fetchone()[0] == 0:
+                raise ValueError(f"Field '{field_name}' does not exist")
+                
+            # Remove field from the fields table
+            self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name=?", (field_name,))
             
-        # Remove the field from the fields table
-        self.cursor.execute(f"DELETE FROM {self.fields_table} WHERE field_name=?", (field_name,))
-        
-        # SQLite doesn't support DROP COLUMN directly, so we need to:
-        # 1. Get all columns except the one to remove
-        self.cursor.execute(f"PRAGMA table_info({self.items_table})")
-        columns = [column[1] for column in self.cursor.fetchall() if column[1] != field_name]
-        
-        # 2. Create a new table without the column
-        columns_str = ", ".join(columns)
-        self.cursor.execute(f"CREATE TABLE temp_table AS SELECT {columns_str} FROM {self.items_table}")
-        
-        # 3. Drop the old table
-        self.cursor.execute(f"DROP TABLE {self.items_table}")
-        
-        # 4. Rename the new table
-        self.cursor.execute(f"ALTER TABLE temp_table RENAME TO {self.items_table}")
-        
-        self.conn.commit()
-        self.log_message(f"Field Removed: field_name:{str(field_name)}")
-        return True
-    except Exception as e:
-        self.log_message(f"ERROR: Field Removal Attempted: field_name:{str(field_name)}")
-        raise e
+            # SQLite doesn't support DROP COLUMN directly
+            # 1. Get all columns except the one to remove
+            self.cursor.execute(f"PRAGMA table_info({self.items_table})")
+            columns = [column[1] for column in self.cursor.fetchall() if column[1] != field_name]
+            
+            # 2. Create a new table without the column
+            columns_str = ", ".join(columns)
+            self.cursor.execute(f"CREATE TABLE temp_table AS SELECT {columns_str} FROM {self.items_table}")
+            
+            # 3. Drop the old table
+            self.cursor.execute(f"DROP TABLE {self.items_table}")
+            
+            # 4. Rename the new table
+            self.cursor.execute(f"ALTER TABLE temp_table RENAME TO {self.items_table}")
+            
+            self.conn.commit()
+            self.log_message(f"Field Removed: field_name:{str(field_name)}")
+            return True
+        except Exception as e:
+            self.log_message(f"ERROR: Field Removal Attempted: field_name:{str(field_name)}")
+            raise e
 
-# Add a method to get field information including required status
-def get_field_info(self, field_name=None):
-    """Get information about fields including their required status"""
-    try:
-        if field_name:
-            self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table} WHERE field_name=?", (field_name,))
-            result = self.cursor.fetchone()
-            if result:
-                return {
-                    'field_name': result[0],
-                    'entry_type': result[1],
-                    'validation_type': result[2],
-                    'required': bool(result[3])  # Convert 0/1 to False/True
-                }
-            return None
-        else:
-            self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table}")
-            results = self.cursor.fetchall()
-            return [{
-                'field_name': row[0],
-                'entry_type': row[1],
-                'validation_type': row[2],
-                'required': bool(row[3])  # Convert 0/1 to False/True
-            } for row in results]
-    except Exception as e:
-        print(f"Error getting field info: {str(e)}")
-        return [] if field_name is None else None
+    # Method to get field information including required status
+    def get_field_info(self, field_name=None):
+        """Get information about fields including their required status"""
+        try:
+            if field_name:
+                self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table} WHERE field_name=?", (field_name,))
+                result = self.cursor.fetchone()
+                if result:
+                    return {
+                        'field_name': result[0],
+                        'entry_type': result[1],
+                        'validation_type': result[2],
+                        'required': bool(result[3])  # Convert 0/1 to False/True
+                    }
+                return None
+            else:
+                self.cursor.execute(f"SELECT field_name, entry_type, validation_type, required FROM {self.fields_table}")
+                results = self.cursor.fetchall()
+                return [{
+                    'field_name': row[0],
+                    'entry_type': row[1],
+                    'validation_type': row[2],
+                    'required': bool(row[3])  # Convert 0/1 to False/True
+                } for row in results]
+        except Exception as e:
+            print(f"Error getting field info: {str(e)}")
+            return [] if field_name is None else None

@@ -1,18 +1,110 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, 
                             QPushButton, QLineEdit, QGridLayout, QTableWidget, QTableWidgetItem, 
                             QHeaderView, QMessageBox, QDialog, QFormLayout, QListWidget, 
-                            QListWidgetItem, QCheckBox, QScrollArea, QComboBox, QSizePolicy)
-from PyQt6.QtCore import Qt, QRegularExpression
-from PyQt6.QtGui import QFont, QIcon, QColor, QRegularExpressionValidator
+                            QListWidgetItem, QCheckBox, QScrollArea, QComboBox, QSizePolicy, QFileDialog, QStackedWidget)
+from PyQt6.QtCore import Qt, QRegularExpression, QTimer
+from PyQt6.QtGui import QFont, QIcon, QColor, QRegularExpressionValidator, QPixmap, QBrush, QMovie
 import pandas as pd
 import re
 
 class InventoryView(QMainWindow):
-    def __init__(self, parent, inventory_system):
+    def __init__(self, parent, inventory_system, ai):
         super().__init__(parent)
         self.inventory_system = inventory_system
+        self.ai = ai
         self.selected_fields = set()
+        
+        # Define the normal style (For Normal search results)
+        self.normal_style = ("""
+            QTableWidget {
+                border: none;
+                gridline-color: #374151;
+                background-color: #1F2937;
+                color: #E5E7EB;
+                alternate-background-color: #111827;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #374151;
+            }
+            QTableWidget::item:selected {
+                background-color: #3B82F6;
+                color: white;
+            }
+            QHeaderView::section {
+                background-color: #111827;
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid #374151;
+                font-weight: bold;
+                color: #9CA3AF;
+                text-transform: uppercase;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #1F2937;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #4B5563;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        # Define the ai recommended items style
+        self.ai_style = ("""
+            QTableWidget {
+                border: none;
+                gridline-color: #374151;
+                background-color: #1F2937;
+                color: #ff6d45;
+                alternate-background-color: #111827;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #374151;
+            }
+            QTableWidget::item:selected {
+                background-color: #3B82F6;
+                color: white;
+            }
+            QHeaderView::section {
+                background-color: #111827;
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid #374151;
+                font-weight: bold;
+                color: #9CA3AF;
+                text-transform: uppercase;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #1F2937;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #4B5563;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        
         self.setup_ui()
+        
+        
+        # FOR AI RECOMMENDATION
+        self.ai_recommendation_timer = QTimer(self)  # Timer to delay AI call (prevents constant AI calls)
+        self.ai_recommendation_timer.setSingleShot(True)
+        self.last_search_query = ""  # Store the last search query so it can later be sent to the AI
+        self.ai_recommendation_timer.timeout.connect(self.fetch_ai_recommendations) # AI will be called after the timer expires
 
     def setup_ui(self):
         central_widget = QWidget()
@@ -123,7 +215,7 @@ class InventoryView(QMainWindow):
         df = self.inventory_system.get_all_items()
         all_fields = df.columns.tolist()
         
-        # Create a grid layout for field checkboxes (removed Select All checkbox)
+        # grid layout for field checkboxes (removed Select All checkbox)
         fields_grid = QWidget()
         fields_grid_layout = QGridLayout(fields_grid)
         fields_grid_layout.setContentsMargins(0, 0, 0, 0)
@@ -162,12 +254,34 @@ class InventoryView(QMainWindow):
         checkbox_layout.addWidget(fields_grid)
         filter_layout.addWidget(checkbox_container)
         
-        # Remove the Apply Filters button since filtering happens automatically
-        # when checkboxes are toggled
-        
-        main_layout.addWidget(self.filter_section)
+        # Stacked widget for the legend and no recommendations message -----------------------------------
+        self.legend_stack = QStackedWidget()
 
-        # Table section
+        # "Recommended" legend
+        self.legend_label = QLabel("🟠 Recommended")
+        self.legend_label.setStyleSheet("color: #ff6d45; font-size: 12px; font-weight: bold;")
+        self.legend_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.legend_stack.addWidget(self.legend_label)  # Add to stacked widget
+
+        # "No Recommendations" message
+        self.no_recommendations_label = QLabel("No similar items found.")
+        self.no_recommendations_label.setStyleSheet("color: #8c9aa8; font-size: 12px; font-weight: bold;")
+        self.no_recommendations_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.legend_stack.addWidget(self.no_recommendations_label)  # Add to stacked widget
+        
+        # Empty message
+        self.empty_label = QLabel("")
+        self.empty_label.setStyleSheet("color: #ffffff; font-size: 12px; font-weight: bold;")
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.legend_stack.addWidget(self.empty_label)  # Add to stacked widget
+
+        # Initially show the EMpty
+        self.legend_stack.setCurrentWidget(self.empty_label)
+
+        # Add the stacked widget to the layout
+        main_layout.addWidget(self.legend_stack)
+
+        # Table section -------------------------------------
         table_container = QFrame()
         table_container.setStyleSheet("""
             background-color: #1F2937;
@@ -179,46 +293,7 @@ class InventoryView(QMainWindow):
 
         # Table
         self.table = QTableWidget()
-        self.table.setStyleSheet("""
-            QTableWidget {
-                border: none;
-                gridline-color: #374151;
-                background-color: #1F2937;
-                color: #E5E7EB;
-                alternate-background-color: #111827;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #374151;
-            }
-            QTableWidget::item:selected {
-                background-color: #3B82F6;
-                color: white;
-            }
-            QHeaderView::section {
-                background-color: #111827;
-                padding: 8px;
-                border: none;
-                border-bottom: 1px solid #374151;
-                font-weight: bold;
-                color: #9CA3AF;
-                text-transform: uppercase;
-            }
-            QScrollBar:vertical {
-                border: none;
-                background: #1F2937;
-                width: 10px;
-                margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: #4B5563;
-                min-height: 20px;
-                border-radius: 5px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-        """)
+        self.table.setStyleSheet(self.normal_style)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.doubleClicked.connect(self.on_table_double_click)
@@ -291,14 +366,14 @@ class InventoryView(QMainWindow):
                     fields_grid.layout().addWidget(checkbox, row, col)
                     self.field_checkboxes[field] = checkbox
         
-        # Update the table
+        # Update table with a search
         self.on_search()
 
     def on_search(self):
-        """Search inventory based on query and selected fields"""
+        self.legend_stack.setCurrentWidget(self.empty_label)
         query = self.search_entry.text()
         
-        # Get all items first
+        # Get all items
         df = self.inventory_system.get_all_items()
         
         # Get selected fields for filtering
@@ -318,11 +393,36 @@ class InventoryView(QMainWindow):
                         mask |= df[field].astype(str).str.contains(escaped_query, case=False, na=False, regex=True)
                 df = df[mask]
             else:
-                # If no fields selected, don't show any results
-                df = df.iloc[0:0]  # Empty DataFrame with same columns
+                # If no fields selected show nothing
+                df = df.iloc[0:0]
                 
+        if df.empty: # If serach result yeilds no results
+            self.update_table(df) # Clear the table (to show no results)
+            self.last_search_query = query # Store the query as the last query so it can be sent to the AI if needed
+            self.ai_recommendation_timer.start(1000) # Delay AI call by 1 second (To prevent constant AI API calls)
+        else:
+            self.ai_recommendation_timer.stop()  # Stop any pending AI calls
         self.update_table(df)
+        
+    #
+    #   Creates and receives the AI API call
+    #
+    def fetch_ai_recommendations(self):
+        try:
+            # Call the make_Query function to get recommendations from the AI
+            ai_recommendations_df = self.ai.make_Query(f"You MUST use the function 'show_ids' in your response, the user has searched for '{self.last_search_query}', and has not found anything matching their search, use the function to show the user 0 to 5 items that are similar to what the user has searched for. If there are no items in the database that are similar to what the user has searched for, return the function with an empty list i.e.: 'show_ids: []'")
 
+            # Check if AI did not recommend any items
+            if ai_recommendations_df.empty:
+                self.legend_stack.setCurrentWidget(self.no_recommendations_label) # Make indicator visible that no similar items found
+                return
+
+            # Display the AI-recommended products in the table with highlighted rows
+            self.legend_stack.setCurrentWidget(self.legend_label)
+            self.update_table(ai_recommendations_df, ai_reccommended=True)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to fetch AI recommendations: {str(e)}")
+    
     def on_table_double_click(self, index):
         row = index.row()
         # Get all column headers
@@ -333,14 +433,66 @@ class InventoryView(QMainWindow):
         # Get data for all columns
         item_data = [self.table.item(row, col).text() for col in range(self.table.columnCount())]
         self.modify_item(item_data, headers)
-
+        
+        
+    def display_all_items(self):
+        self.legend_stack.setCurrentWidget(self.empty_label)
+        # Get all items as a DataFrame
+        items_df = self.inventory_system.get_all_items()
+        
+        # Update the table with all items
+        self.update_table(items_df)
+        
+        
+        
+    def update_table(self, df, ai_reccommended=False):
+        # Clear the current table
+        self.table.setRowCount(0)
+        
+        if df.empty:
+            return
+            
+        # Set up table columns
+        self.table.setColumnCount(len(df.columns))
+        self.table.setHorizontalHeaderLabels(df.columns)
+        
+        if ai_reccommended:
+            self.table.setStyleSheet(self.ai_style)
+            self.table.setAlternatingRowColors(True)
+        else:
+            self.table.setStyleSheet(self.normal_style)
+            self.table.setAlternatingRowColors(True)
+        
+        # Add items to table
+        for row_idx, (_, row_data) in enumerate(df.iterrows()):
+            self.table.insertRow(row_idx)
+            for col_idx, field in enumerate(df.columns):
+                value = row_data[field]
+                item = QTableWidgetItem(str(value))
+                    
+                # self.table.setItem(row_idx, col_idx, item)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setBackground(QBrush(QColor('#1f7cff')))
+                self.table.setItem(row_idx, col_idx, item)
+        
+        # Set column resize mode based on number of columns
+        if len(df.columns) <= 7:
+            # If 7 or fewer columns, stretch to fill the width
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        else:
+            # If more than 7 columns, use fixed width with scrollbar
+            for i in range(len(df.columns)):
+                self.table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)    
+        
+    
     def modify_item(self, item_data, columns):
         if not item_data:
             return
 
+        # Initialize dialog
         mod_dialog = QDialog(self)
         mod_dialog.setWindowTitle("Modify Product")
-        mod_dialog.resize(500, 500)
+        mod_dialog.resize(600, 600)
         mod_dialog.setStyleSheet("""
             QDialog {
                 background-color: #1F2937;
@@ -374,29 +526,21 @@ class InventoryView(QMainWindow):
         dialog_layout = QVBoxLayout(mod_dialog)
         dialog_layout.setContentsMargins(20, 20, 20, 20)
         dialog_layout.setSpacing(15)
-        
+
+        # Title
         title = QLabel("Edit Product Details")
         title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         dialog_layout.addWidget(title)
-        
+
+        # Form layout for product details
         form_layout = QFormLayout()
         form_layout.setSpacing(12)
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
         entries = {}
-        message_labels = {}  # For validation error messages
-        
-        # Define validation patterns for each field type
-        validation_patterns = {
-            'id': '^[a-zA-Z0-9]+$',  # Only letters and numbers
-            'name': '',  # Any text is valid
-            'brand': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
-            'category': '^[a-zA-Z0-9 ]+$',  # Only letters, numbers and spaces
-            'description': '',  # Any text is valid
-            'price': '^[0-9]+(\.[0-9]{1,2})?$',  # Numbers with optional decimal point
-            'quantity': '^[0-9]+$',  # Only whole numbers
-        }
+        message_labels = {}
 
+        # Populate fields
         for idx, col in enumerate(columns):
             label = QLabel(col.capitalize())
             label.setFont(QFont("Segoe UI", 12))
@@ -404,17 +548,11 @@ class InventoryView(QMainWindow):
             entry = QLineEdit()
             entry.setFont(QFont("Segoe UI", 12))
             entry.setText(str(item_data[idx]))
-            
-            # Apply field-specific validators
-            col_lower = col.lower()
-            if col_lower in validation_patterns and validation_patterns[col_lower]:
-                validator = QRegularExpressionValidator(QRegularExpression(validation_patterns[col_lower]))
-                entry.setValidator(validator)
 
             form_layout.addRow(label, entry)
             entries[col] = entry
-            
-            # Add error message label below each entry
+
+            # Add error message label
             error_label = QLabel("")
             error_label.setStyleSheet("color: #ef4444; font-weight: normal; font-size: 10px;")
             form_layout.addRow("", error_label)
@@ -422,10 +560,67 @@ class InventoryView(QMainWindow):
 
         dialog_layout.addLayout(form_layout)
 
+        # Image frame
+        image_container = QFrame()
+        image_container.setStyleSheet("""
+            background-color: #1F2937;
+            border-radius: 4px;
+            border: 1px solid #374151;
+        """)
+        image_container.setFixedHeight(200)
+        image_container.setMinimumWidth(200)
+
+        # Layout for image container
+        image_container_layout = QVBoxLayout(image_container)
+        image_container_layout.setContentsMargins(10, 10, 10, 10)
+        image_container_layout.setSpacing(10)
+
+        # Create a clickable upload label at the top
+        upload_label = QLabel("Click to Upload Image")
+        upload_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        upload_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        upload_label.mousePressEvent = self.upload_image  # Make it clickable
+        image_container_layout.addWidget(upload_label)
+
+        # Scroll area for images
+        self.image_list_widget = QWidget()
+        self.image_layout = QVBoxLayout(self.image_list_widget)
+        self.image_layout.setContentsMargins(5, 5, 5, 5)
+        self.image_layout.setSpacing(10)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.image_list_widget)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #111827;
+                width: 8px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #4B5563;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        image_container_layout.addWidget(scroll_area)
+        dialog_layout.addWidget(image_container)
+
+        # Load existing images
+        self.load_existing_images(item_data[0])  # Pass the product ID
+
+        # Buttons
         button_container = QFrame()
         button_layout = QHBoxLayout(button_container)
         button_layout.setContentsMargins(0, 10, 0, 0)
-        
+
         cancel_btn = QPushButton("Cancel")
         cancel_btn.setFont(QFont("Segoe UI", 12))
         cancel_btn.setStyleSheet("""
@@ -433,16 +628,100 @@ class InventoryView(QMainWindow):
             color: #334155;
         """)
         cancel_btn.clicked.connect(mod_dialog.reject)
-        
+
         save_btn = QPushButton("Save Changes")
         save_btn.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         save_btn.clicked.connect(lambda: self.save_changes(mod_dialog, columns, entries, item_data, message_labels))
-        
+
         button_layout.addWidget(cancel_btn)
         button_layout.addWidget(save_btn)
-        
         dialog_layout.addWidget(button_container)
+
         mod_dialog.exec()
+    
+    
+    #
+    #   Loads existing images from the product into the list in the UI
+    #
+    def load_existing_images(self, product_id):
+        self.existing_images = self.inventory_system.get_images_for_product(product_id)  # Retrieve images from the database
+        self.image_paths = []  # Reset new image paths
+
+        for image_data in self.existing_images:
+            self.add_image_to_container(image_data, is_existing=True)
+                        
+    #
+    #   Uploads a file to the UI list
+    #
+    def upload_image(self, event):
+        file_dialog = QFileDialog(self)
+        file_dialog.setNameFilters(["Image files (*.png *.jpg *.jpeg *.bmp *.gif)"])
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            for image_path in selected_files:
+                if image_path not in self.image_paths:  # Avoid duplicates
+                    self.image_paths.append(image_path)
+                    self.add_image_to_container(image_path)
+
+    #
+    #   Add image to the image container list in the UI
+    #       - as binary or an image path
+    #
+    def add_image_to_container(self, image_data, is_existing=False):
+        image_item_container = QFrame()
+        image_item_layout = QHBoxLayout(image_item_container)
+        image_item_layout.setContentsMargins(5, 5, 5, 5)
+        image_item_layout.setSpacing(10)
+
+        # Remove button
+        remove_button = QPushButton("Remove")
+        remove_button.setFixedSize(80, 30)
+        remove_button.setStyleSheet("""
+            QPushButton {
+                background-color: #EF4444;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #DC2626;
+            }
+        """)
+        remove_button.clicked.connect(lambda: self.remove_image(image_item_container, image_data, is_existing))
+        image_item_layout.addWidget(remove_button)
+
+        # Thumbnail
+        thumbnail = QLabel()
+        pixmap = QPixmap()
+        
+        # Load from binary data or map depending if the image exists already 
+        #   (images already in the database are stored in binary, whereas images not yet stored in the database are kept as paths until they are entered into the database)
+        if is_existing:
+            pixmap.loadFromData(image_data)  # Load from binary
+        else:
+            pixmap.load(image_data)  # Load from path
+            
+        thumbnail.setPixmap(pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        thumbnail.setStyleSheet("border: 0px solid #374151; margin: 5px;")
+        image_item_layout.addWidget(thumbnail)
+
+        self.image_layout.addWidget(image_item_container)
+
+    #
+    # Remove an image from the image container list
+    #
+    def remove_image(self, container, image_data, is_existing):
+        self.image_layout.removeWidget(container)
+        container.deleteLater()
+
+        if is_existing:
+            self.existing_images.remove(image_data)
+        else:
+            self.image_paths.remove(image_data)
+    
 
     def toggle_filter_section(self):
         """Toggle the visibility of the filter section when the filter button is clicked."""
@@ -542,44 +821,27 @@ class InventoryView(QMainWindow):
                 return
         
         success = self.inventory_system.update_item(original_id, new_data)
-        if success:
-            dialog.accept()
-            self.on_search()
-        else:
+        if not success:
             QMessageBox.critical(self, "Error", "Failed to update the product.")
-
-    def display_all_items(self):
-        """Display all items in the inventory"""
-        # Get all items as a DataFrame
-        items_df = self.inventory_system.get_all_items()
-        
-        # Update the table with all items
-        self.update_table(items_df)
-        
-    def update_table(self, df):
-        """Update the table with data from a DataFrame"""
-        # Clear the current table
-        self.table.setRowCount(0)
-        
-        if df.empty:
-            return
             
-        # Set up table columns
-        self.table.setColumnCount(len(df.columns))
-        self.table.setHorizontalHeaderLabels(df.columns)
-        
-        # Add items to table
-        for row_idx, (_, row_data) in enumerate(df.iterrows()):
-            self.table.insertRow(row_idx)
-            for col_idx, field in enumerate(df.columns):
-                value = row_data[field]
-                self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
-        
-        # Set column resize mode based on number of columns
-        if len(df.columns) <= 7:
-            # If 7 or fewer columns, stretch to fill the width
-            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        else:
-            # If more than 7 columns, use fixed width with scrollbar
-            for i in range(len(df.columns)):
-                self.table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+        # Update the images in the database
+        try:
+            # Remove deleted images
+            current_images = self.inventory_system.get_images_for_product(original_id)
+            for image_data in current_images:
+                if image_data not in self.existing_images:
+                    self.inventory_system.remove_image(original_id, image_data)
+
+            # Add new images
+            for image_path in self.image_paths:
+                with open(image_path, "rb") as image_file:
+                    image_data = image_file.read()
+                    self.inventory_system.add_image_to_product(original_id, image_data)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to update images: {str(e)}")
+            return
+
+        # Close the dialog and refresh the table
+        dialog.accept()
+        self.on_search()

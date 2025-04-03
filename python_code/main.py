@@ -15,7 +15,7 @@ def main():
     
     # Create UI instance and set it in the database system
     ui = UI(database)
-    database.set_ui(ui) 
+    database.set_ui(ui)
     
     # Display Menu for database instance
     ui.display_menu()
