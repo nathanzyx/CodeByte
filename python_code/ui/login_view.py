@@ -405,7 +405,7 @@ class LoginView(QDialog):
         
         main_layout.addWidget(main_container)
         
-    def authenticate_new_credentials(self, change_password, change_username, requires_login):
+    def authenticate_new_credentials(self, change_username, change_password, requires_login):
         if change_username.strip() == "" or change_password.strip() == "":
             QMessageBox.critical(self, "Credentials Not Updated", "A username or password cannot be empty.")
             return
