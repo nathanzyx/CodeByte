@@ -29,6 +29,7 @@ class DatabaseSystem:
         self.log_file = self.getLogFile(name, ".txt")
         
         self.username = ""
+        self.password = ""
         self.logged_in = False
         
         # Create/Connect SQLite3 Database "products" (and table)
@@ -176,14 +177,14 @@ class DatabaseSystem:
     #
     #   Modifies account credentials if the old credentials match
     #
-    def set_account_credentials(self, oldUsername, oldPassword, newUsername, newPassword, login_required):
+    def set_account_credentials(self, newUsername, newPassword, login_required):
         try:
             # Get password from the login table
-            self.cursor.execute(f"SELECT password FROM {self.login_table} WHERE username=?", (oldUsername,))
+            self.cursor.execute(f"SELECT password FROM {self.login_table} WHERE username=?", (self.username,))
             result = self.cursor.fetchone()
 
             # If username exists and password matches the usernames stored password
-            if not result or result[0] != oldPassword:
+            if not result or result[0] != self.password:
                 self.log_message("Failed to update credentials: Invalid old username or password.")
                 return False
 
@@ -192,7 +193,7 @@ class DatabaseSystem:
                 UPDATE {self.login_table}
                 SET username=?, password=?, requires_login=?
                 WHERE username=?
-            ''', (newUsername, newPassword, login_required, oldUsername))
+            ''', (newUsername, newPassword, login_required, self.username))
             self.conn.commit()
 
             self.log_message(f"Account credentials updated successfully: New username '{newUsername}'.")
@@ -227,6 +228,7 @@ class DatabaseSystem:
                 
                 # set database username
                 self.username = username
+                self.password = password
                 
                 return True
             else:

@@ -87,10 +87,10 @@ class LoginView(QDialog):
         username_label.setStyleSheet(f"color: {self.colors['text']};")
         container_layout.addWidget(username_label)
         
-        self.old_username = QLineEdit()
-        self.old_username.setPlaceholderText("Old username")
-        self.old_username.setFont(QFont("Segoe UI", 11))
-        self.old_username.setStyleSheet(f"""
+        self.change_username = QLineEdit()
+        self.change_username.setPlaceholderText("Username")
+        self.change_username.setFont(QFont("Segoe UI", 11))
+        self.change_username.setStyleSheet(f"""
             QLineEdit {{
                 border: 1px solid {self.colors['border']};
                 border-radius: 4px;
@@ -103,27 +103,50 @@ class LoginView(QDialog):
                 border: 1px solid {self.colors['accent']};
             }}
         """)
-        self.old_username.setText(self.inventory_system.username)
-        container_layout.addWidget(self.old_username)
+        self.change_username.setText(self.inventory_system.username)
+        container_layout.addWidget(self.change_username)
         container_layout.addSpacing(5)
             # NEW USERNAME
-        self.new_username = QLineEdit()
-        self.new_username.setPlaceholderText("New username")
-        self.new_username.setFont(QFont("Segoe UI", 11))
-        self.new_username.setStyleSheet(f"""
-            QLineEdit {{
-                border: 1px solid {self.colors['border']};
-                border-radius: 4px;
-                padding: 12px;
-                min-height: 17px;
-                background-color: {self.colors['input_bg']};
-                color: {self.colors['text']};
-            }}
-            QLineEdit:focus {{
-                border: 1px solid {self.colors['accent']};
-            }}
-        """)
-        container_layout.addWidget(self.new_username)
+        # self.new_username = QLineEdit()
+        # self.new_username.setPlaceholderText("New username")
+        # self.new_username.setFont(QFont("Segoe UI", 11))
+        # self.new_username.setStyleSheet(f"""
+        #     QLineEdit {{
+        #         border: 1px solid {self.colors['border']};
+        #         border-radius: 4px;
+        #         padding: 12px;
+        #         min-height: 17px;
+        #         background-color: {self.colors['input_bg']};
+        #         color: {self.colors['text']};
+        #     }}
+        #     QLineEdit:focus {{
+        #         border: 1px solid {self.colors['accent']};
+        #     }}
+        # """)
+        # container_layout.addWidget(self.new_username)
+        
+        # change_username_button = QPushButton("Change Username")
+        # change_username_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        # change_username_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        # change_username_button.setStyleSheet(f"""
+        #     QPushButton {{
+        #         background-color: {self.colors['accent']};
+        #         color: white;
+        #         border-radius: 4px;
+        #         padding: 14px;
+        #         min-height: 16px;
+        #         border: none;
+        #     }}
+        #     QPushButton:hover {{
+        #         background-color: #2563EB;
+        #     }}
+        #     QPushButton:pressed {{
+        #         background-color: #1D4ED8;
+        #     }}
+        # """)
+        # change_username_button.clicked.connect(lambda: self.authenticate_new_credentials(self.old_username.text(), self.change_password.text(), self.new_username.text(), self.new_password.text(), self.require_login_checkbox.isChecked()))
+        # container_layout.addWidget(change_username_button)
+        
         
         
         container_layout.addSpacing(10)
@@ -134,11 +157,11 @@ class LoginView(QDialog):
         password_label.setStyleSheet(f"color: {self.colors['text']};")
         container_layout.addWidget(password_label)
         
-        self.old_password = QLineEdit()
-        self.old_password.setPlaceholderText("Old password")
-        self.old_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.old_password.setFont(QFont("Segoe UI", 11))
-        self.old_password.setStyleSheet(f"""
+        self.change_password = QLineEdit()
+        self.change_password.setPlaceholderText("Password")
+        self.change_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.change_password.setFont(QFont("Segoe UI", 11))
+        self.change_password.setStyleSheet(f"""
             QLineEdit {{
                 border: 1px solid {self.colors['border']};
                 border-radius: 4px;
@@ -151,27 +174,28 @@ class LoginView(QDialog):
                 border: 1px solid {self.colors['accent']};
             }}
         """)
-        container_layout.addWidget(self.old_password)
+        self.change_password.setText(self.inventory_system.password)
+        container_layout.addWidget(self.change_password)
         container_layout.addSpacing(5)
             # NEW PASSWORD
-        self.new_password = QLineEdit()
-        self.new_password.setPlaceholderText("New password")
-        self.new_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.new_password.setFont(QFont("Segoe UI", 11))
-        self.new_password.setStyleSheet(f"""
-            QLineEdit {{
-                border: 1px solid {self.colors['border']};
-                border-radius: 4px;
-                padding: 12px;
-                min-height: 17px;
-                background-color: {self.colors['input_bg']};
-                color: {self.colors['text']};
-            }}
-            QLineEdit:focus {{
-                border: 1px solid {self.colors['accent']};
-            }}
-        """)
-        container_layout.addWidget(self.new_password)
+        # self.new_password = QLineEdit()
+        # self.new_password.setPlaceholderText("New password")
+        # self.new_password.setEchoMode(QLineEdit.EchoMode.Password)
+        # self.new_password.setFont(QFont("Segoe UI", 11))
+        # self.new_password.setStyleSheet(f"""
+        #     QLineEdit {{
+        #         border: 1px solid {self.colors['border']};
+        #         border-radius: 4px;
+        #         padding: 12px;
+        #         min-height: 17px;
+        #         background-color: {self.colors['input_bg']};
+        #         color: {self.colors['text']};
+        #     }}
+        #     QLineEdit:focus {{
+        #         border: 1px solid {self.colors['accent']};
+        #     }}
+        # """)
+        # container_layout.addWidget(self.new_password)
         
         
         # Checkbox for "Require Login" checking this will require the user to log in before performing database actions
@@ -202,7 +226,7 @@ class LoginView(QDialog):
         container_layout.addSpacing(30)
         
         # Login button
-        login_button = QPushButton("Set Login Credentials")
+        login_button = QPushButton("Save Changes")
         login_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         login_button.setCursor(Qt.CursorShape.PointingHandCursor)
         login_button.setStyleSheet(f"""
@@ -221,7 +245,7 @@ class LoginView(QDialog):
                 background-color: #1D4ED8;
             }}
         """)
-        login_button.clicked.connect(lambda: self.authenticate_new_credentials(self.old_username.text(), self.old_password.text(), self.new_username.text(), self.new_password.text(), self.require_login_checkbox.isChecked()))
+        login_button.clicked.connect(lambda: self.authenticate_new_credentials(self.change_username.text(), self.change_password.text(), self.require_login_checkbox.isChecked()))
         container_layout.addWidget(login_button)
         
         main_layout.addWidget(main_container)
@@ -381,24 +405,24 @@ class LoginView(QDialog):
         
         main_layout.addWidget(main_container)
         
-    def authenticate_new_credentials(self, old_username, old_password, new_username, new_password, requires_login):
-        if new_username.strip() == "" or new_password.strip() == "":
+    def authenticate_new_credentials(self, change_password, change_username, requires_login):
+        if change_username.strip() == "" or change_password.strip() == "":
             QMessageBox.critical(self, "Credentials Not Updated", "A username or password cannot be empty.")
             return
-        if " " in new_username or " " in new_password:
+        if " " in change_username or " " in change_password:
             QMessageBox.critical(self, "Credentials Not Updated", "A username or password cannot contain spaces.")
             return
         
         # Check if the username and password match the hardcoded values
-        result = self.inventory_system.set_account_credentials(old_username, old_password, new_username, new_password, requires_login)
+        result = self.inventory_system.set_account_credentials(change_username, change_password, requires_login)
         
         if result:
-            QMessageBox.information(self, new_username, "Credentials Updated!")
-            self.crnt_user = new_username
+            QMessageBox.information(self, change_username, "Credentials Updated!")
+            self.crnt_user = change_username
             self.accept()
             
             # Since the user has set their credentials succesfully at this point, we just log them in to save time
-            self.inventory_system.login(new_username, new_password)
+            self.inventory_system.login(change_username, change_password)
         else:
             QMessageBox.critical(self, "Credentials Not Updated", "Invalid old username or old password.")
 
@@ -480,11 +504,11 @@ class LoginView(QDialog):
         password_label.setStyleSheet(f"color: {self.colors['text']};")
         container_layout.addWidget(password_label)
         
-        self.password_entry = QLineEdit()
-        self.password_entry.setPlaceholderText("Enter your password")
-        self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_entry.setFont(QFont("Segoe UI", 11))
-        self.password_entry.setStyleSheet(f"""
+        self.change_password = QLineEdit()
+        self.change_password.setPlaceholderText("Enter your password")
+        self.change_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.change_password.setFont(QFont("Segoe UI", 11))
+        self.change_password.setStyleSheet(f"""
             QLineEdit {{
                 border: 1px solid {self.colors['border']};
                 border-radius: 4px;
@@ -497,7 +521,7 @@ class LoginView(QDialog):
                 border: 1px solid {self.colors['accent']};
             }}
         """)
-        container_layout.addWidget(self.password_entry)
+        container_layout.addWidget(self.change_password)
         
         container_layout.addSpacing(30)
         
@@ -535,7 +559,7 @@ class LoginView(QDialog):
 
     def authenticate_user(self):
         # Check if the username and password match the hardcoded values
-        login_result = self.inventory_system.login(self.username_entry.text(), self.password_entry.text())
+        login_result = self.inventory_system.login(self.username_entry.text(), self.change_password.text())
         
         if login_result:
             QMessageBox.information(self, "Login Successful", "Welcome!")
