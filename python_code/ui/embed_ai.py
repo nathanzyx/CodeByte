@@ -27,14 +27,12 @@ class EmbedAI:
         
         self.setup_ui()
 
+    # Modify this method to always enable the chat
     def update_login_state(self):
-        """Update the input field state based on login status"""
-        is_logged_in = self.llama.inventory_system.logged_in
-        self.message_entry.setEnabled(is_logged_in)
-        if is_logged_in:
-            self.message_entry.setPlaceholderText("Type your message here...")
-        else:
-            self.message_entry.setPlaceholderText("Please log in to chat")
+        """Update the input field state to always be enabled"""
+        # Always enable the chat input regardless of login status
+        self.message_entry.setEnabled(True)
+        self.message_entry.setPlaceholderText("Type your message here...")
 
     def setup_ui(self):
         # Create main layout for the parent frame
@@ -112,11 +110,9 @@ class EmbedAI:
         
         self.message_entry = QLineEdit()
         self.message_entry.setFont(QFont("Inter", 12))
-        self.message_entry.setEnabled(self.llama.inventory_system.logged_in)  # Set initial state
-        if not self.llama.inventory_system.logged_in:
-            self.message_entry.setPlaceholderText("Please log in to chat")
-        else:
-            self.message_entry.setPlaceholderText("Type your message here...")
+        # Always enable the input regardless of login status
+        self.message_entry.setEnabled(True)
+        self.message_entry.setPlaceholderText("Type your message here...")
         self.message_entry.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {self.colors['input_bg']};
@@ -132,8 +128,6 @@ class EmbedAI:
                 border: 1px solid {self.colors['accent']};
             }}
         """)
-        if not self.llama.inventory_system.logged_in:  # Add this conditional
-            self.message_entry.setPlaceholderText("Please log in to chat")
         self.message_entry.returnPressed.connect(self.submit_message)
         message_layout.addWidget(self.message_entry)
         
@@ -299,7 +293,7 @@ class EmbedAI:
     
     # def get_selected_item(self):
     #     selected_item = self.tree.focus()
-    #     if selected_item:
+    #     if (selected_item):
     #         return self.tree.item(selected_item)['values']
     #     return None
     
