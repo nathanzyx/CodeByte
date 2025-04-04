@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QRegularExpression, QTimer
 from PyQt6.QtGui import QFont, QIcon, QColor, QRegularExpressionValidator, QPixmap, QBrush, QMovie
 import pandas as pd
 import re
+import os  # Add this import
 
 class InventoryView(QMainWindow):
     def __init__(self, parent, inventory_system, ai):
@@ -492,7 +493,7 @@ class InventoryView(QMainWindow):
         # Initialize dialog
         mod_dialog = QDialog(self)
         mod_dialog.setWindowTitle("Modify Product")
-        mod_dialog.resize(600, 600)
+        mod_dialog.resize(900, 600)  # Wider dialog to accommodate side-by-side layout
         mod_dialog.setStyleSheet("""
             QDialog {
                 background-color: #1F2937;
@@ -523,14 +524,31 @@ class InventoryView(QMainWindow):
             }
         """)
 
-        dialog_layout = QVBoxLayout(mod_dialog)
-        dialog_layout.setContentsMargins(20, 20, 20, 20)
-        dialog_layout.setSpacing(15)
+        # Main layout (horizontal)
+        main_layout = QHBoxLayout(mod_dialog)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # Title
+        # Left side (form fields)
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(20, 20, 10, 20)
+        left_layout.setSpacing(15)
+
+        # Right side (images)
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(10, 20, 20, 20)
+        right_layout.setSpacing(15)
+
+        # Set panel widths
+        left_panel.setMinimumWidth(500)
+        right_panel.setMinimumWidth(300)
+
+        # Title - Left panel
         title = QLabel("Edit Product Details")
         title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        dialog_layout.addWidget(title)
+        left_layout.addWidget(title)
 
         # Form layout for product details
         form_layout = QFormLayout()
@@ -558,35 +576,70 @@ class InventoryView(QMainWindow):
             form_layout.addRow("", error_label)
             message_labels[col] = error_label
 
-        dialog_layout.addLayout(form_layout)
+        left_layout.addLayout(form_layout)
+        
+        # Add buttons to the bottom of left panel
+        button_container = QFrame()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 10, 0, 0)
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFont(QFont("Segoe UI", 12))
+        cancel_btn.setStyleSheet("""
+            background-color: #F1F5F9;
+            color: #334155;
+        """)
+        cancel_btn.clicked.connect(mod_dialog.reject)
+
+        save_btn = QPushButton("Save Changes")
+        save_btn.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        save_btn.clicked.connect(lambda: self.save_changes(mod_dialog, columns, entries, item_data, message_labels))
+
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(save_btn)
+        left_layout.addWidget(button_container)
+        
+        # Add spacer to push content up
+        left_layout.addStretch()
+
+        # Image section title - Right panel
+        image_title = QLabel("Product Images")
+        image_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        right_layout.addWidget(image_title)
 
         # Image frame
         image_container = QFrame()
         image_container.setStyleSheet("""
-            background-color: #1F2937;
+            background-color: #111827;
             border-radius: 4px;
             border: 1px solid #374151;
         """)
-        image_container.setFixedHeight(200)
-        image_container.setMinimumWidth(200)
 
         # Layout for image container
         image_container_layout = QVBoxLayout(image_container)
         image_container_layout.setContentsMargins(10, 10, 10, 10)
         image_container_layout.setSpacing(10)
 
-        # Create a clickable upload label at the top
-        upload_label = QLabel("Click to Upload Image")
-        upload_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        upload_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
-        upload_label.mousePressEvent = self.upload_image  # Make it clickable
-        image_container_layout.addWidget(upload_label)
+        # Upload button at the top of image section
+        upload_btn = QPushButton("➕ Upload Images")
+        upload_btn.setFont(QFont("Segoe UI", 12))
+        upload_btn.setStyleSheet("""
+            background-color: #3B82F6;
+            color: white;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-weight: bold;
+            text-align: center;
+        """)
+        upload_btn.clicked.connect(self.upload_image)
+        image_container_layout.addWidget(upload_btn)
 
         # Scroll area for images
         self.image_list_widget = QWidget()
         self.image_layout = QVBoxLayout(self.image_list_widget)
         self.image_layout.setContentsMargins(5, 5, 5, 5)
         self.image_layout.setSpacing(10)
+        self.image_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Keep images at the top
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -611,35 +664,23 @@ class InventoryView(QMainWindow):
             }
         """)
         image_container_layout.addWidget(scroll_area)
-        dialog_layout.addWidget(image_container)
+        right_layout.addWidget(image_container, 1)  # Give it stretch to fill available space
+
+        # Add help text at the bottom of image panel
+        help_text = QLabel("Click 'Upload Images' to add product photos.\nYou can remove images by clicking the Remove button.")
+        help_text.setStyleSheet("color: #9CA3AF; font-size: 11px; font-weight: normal;")
+        help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        right_layout.addWidget(help_text)
+
+        # Add panels to main layout
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(right_panel)
 
         # Load existing images
         self.load_existing_images(item_data[0])  # Pass the product ID
 
-        # Buttons
-        button_container = QFrame()
-        button_layout = QHBoxLayout(button_container)
-        button_layout.setContentsMargins(0, 10, 0, 0)
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setFont(QFont("Segoe UI", 12))
-        cancel_btn.setStyleSheet("""
-            background-color: #F1F5F9;
-            color: #334155;
-        """)
-        cancel_btn.clicked.connect(mod_dialog.reject)
-
-        save_btn = QPushButton("Save Changes")
-        save_btn.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        save_btn.clicked.connect(lambda: self.save_changes(mod_dialog, columns, entries, item_data, message_labels))
-
-        button_layout.addWidget(cancel_btn)
-        button_layout.addWidget(save_btn)
-        dialog_layout.addWidget(button_container)
-
         mod_dialog.exec()
-    
-    
+
     #
     #   Loads existing images from the product into the list in the UI
     #
@@ -671,13 +712,48 @@ class InventoryView(QMainWindow):
     #
     def add_image_to_container(self, image_data, is_existing=False):
         image_item_container = QFrame()
+        image_item_container.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                border-radius: 4px;
+                border: 1px solid #374151;
+                margin: 2px;
+            }
+        """)
         image_item_layout = QHBoxLayout(image_item_container)
-        image_item_layout.setContentsMargins(5, 5, 5, 5)
+        image_item_layout.setContentsMargins(8, 8, 8, 8)
         image_item_layout.setSpacing(10)
 
-        # Remove button
+        # Thumbnail
+        thumbnail = QLabel()
+        pixmap = QPixmap()
+        
+        # Load from binary data or map depending if the image exists already
+        if is_existing:
+            pixmap.loadFromData(image_data)  # Load from binary
+        else:
+            pixmap.load(image_data)  # Load from path
+            
+        # Create a square thumbnail with fixed size    
+        thumbnail.setPixmap(pixmap.scaled(70, 70, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        thumbnail.setStyleSheet("border: none; background-color: transparent;")
+        thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        image_item_layout.addWidget(thumbnail)
+
+        # Add image name/info in the middle
+        info_label = QLabel("Image")
+        if not is_existing and image_data:
+            # Show filename for new images
+            file_name = os.path.basename(image_data)
+            if len(file_name) > 20:
+                file_name = file_name[:17] + "..."
+            info_label.setText(file_name)
+        info_label.setStyleSheet("color: #E5E7EB; font-size: 12px;")
+        image_item_layout.addWidget(info_label, 1)  # Give it stretch
+
+        # Remove button on the right
         remove_button = QPushButton("Remove")
-        remove_button.setFixedSize(80, 30)
+        remove_button.setFixedSize(70, 30)
         remove_button.setStyleSheet("""
             QPushButton {
                 background-color: #EF4444;
@@ -692,21 +768,6 @@ class InventoryView(QMainWindow):
         """)
         remove_button.clicked.connect(lambda: self.remove_image(image_item_container, image_data, is_existing))
         image_item_layout.addWidget(remove_button)
-
-        # Thumbnail
-        thumbnail = QLabel()
-        pixmap = QPixmap()
-        
-        # Load from binary data or map depending if the image exists already 
-        #   (images already in the database are stored in binary, whereas images not yet stored in the database are kept as paths until they are entered into the database)
-        if is_existing:
-            pixmap.loadFromData(image_data)  # Load from binary
-        else:
-            pixmap.load(image_data)  # Load from path
-            
-        thumbnail.setPixmap(pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        thumbnail.setStyleSheet("border: 0px solid #374151; margin: 5px;")
-        image_item_layout.addWidget(thumbnail)
 
         self.image_layout.addWidget(image_item_container)
 
