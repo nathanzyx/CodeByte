@@ -62,3 +62,42 @@
 [2025-04-04 12:31:43] Login successful: Username '12345'.
 [2025-04-04 12:31:51] Account credentials updated successfully: New username '123'.
 [2025-04-04 12:31:51] Login successful: Username '123'.
+[2025-04-04 12:55:07] Login successful: Username '123'.
+[2025-04-04 12:55:17] Account credentials updated successfully: New username '123'.
+[2025-04-04 12:55:18] Login successful: Username '123'.
+[2025-04-04 12:55:19]  -- LOGOUT: user:123
+[2025-04-04 12:55:48] Login successful: Username '123'.
+[2025-04-04 12:55:53]  -- LOGOUT: user:123
+[2025-04-04 12:57:24] Login successful: Username '123'.
+[2025-04-04 13:00:47] Field Added: field_name:test, entry_type:small_box, validation_type:int, required:0
+[2025-04-04 13:00:55] Field Removed: field_name:test
+[2025-04-04 13:01:26]  -- LOGOUT: user:123
+[2025-04-04 13:02:50] Login successful: Username '123'.
+[2025-04-04 13:02:59] Account credentials updated successfully: New username '1234'.
+[2025-04-04 13:02:59] Login successful: Username '1234'.
+[2025-04-04 13:03:04]  -- LOGOUT: user:1234
+[2025-04-04 13:03:19] Login failed: Incorrect password for username '1234'.
+[2025-04-04 13:03:22] Login failed: Incorrect password for username '1234'.
+[2025-04-04 13:03:30] Login successful: Username '1234'.
+[2025-04-04 13:03:40] Account credentials updated successfully: New username '123'.
+[2025-04-04 13:03:41] Login successful: Username '123'.
+[2025-04-04 13:04:54]  -- LOGOUT: user:123
+[2025-04-04 13:05:17] Login successful: Username '123'.
+[2025-04-04 13:06:46]  -- LOGOUT: user:123
+[2025-04-04 13:17:47] Login successful: Username '123'.
+[2025-04-04 13:19:49]  -- LOGOUT: user:123
+[2025-04-04 13:26:11] Login successful: Username '123'.
+[2025-04-04 13:28:44] Item Modified: id:1, new_data:{'id': '1', 'name': 'Iphone 4S', 'quantity': '40', 'price': '499.0', 'category': 'Phones', 'brand': 'Apple', 'description': 'Storage: 8GB, 16GB, and 32GB\n- Has front selfie camera\n- Comes with Siri\n- Color Options: Black and White'}
+[2025-04-04 13:28:44] Image added for product_id 1
+[2025-04-04 13:28:48] Item Modified: id:1, new_data:{'id': '1', 'name': 'Iphone 4S', 'quantity': '40', 'price': '499.0', 'category': 'Phones', 'brand': 'Apple', 'description': 'Storage: 8GB, 16GB, and 32GB\n- Has front selfie camera\n- Comes with Siri\n- Color Options: Black and White'}
+[2025-04-04 13:28:48] Image removed for product_id 1
+[2025-04-04 13:31:00]  -- LOGOUT: user:123
+[2025-04-04 13:31:45] Login successful: Username '123'.
+[2025-04-04 13:33:04]  -- LOGOUT: user:123
+[2025-04-04 13:33:18] Login successful: Username '123'.
+[2025-04-04 13:33:56]  -- LOGOUT: user:123
+[2025-04-04 13:35:05] Login successful: Username '123'.
+[2025-04-04 13:35:11] Item Modified: id:90da9ce9-b0e6-41d4-8c20-e440e6aaa1bf, new_data:{'id': '90da9ce9-b0e6-41d4-8c20-e440e6aaa1bf', 'name': 'Asus Mouse 116', 'quantity': '46', 'price': '14.32', 'category': 'Mouse', 'brand': 'Asus', 'description': 'Precision mouse featuring ultra-fast processor and high refresh rate. Great for entertainment. #Mouse #Gaming'}
+[2025-04-04 13:35:21] Item Modified: id:a1c059f9-1ddf-484f-80d8-93e4450d33b4, new_data:{'id': 'a1c059f9-1ddf-484f-80d8-93e4450d33b4', 'name': 'Logitech Keyboard 837', 'quantity': '12', 'price': '238.5', 'category': 'Keyboard', 'brand': 'Logitech', 'description': 'Ergonomic keyboard with high refresh rate and long battery life. Optimized for everyday use. #Keyboard #Peripherals'}
+[2025-04-04 13:35:27]  -- LOGOUT: user:123
+[2025-04-04 13:35:57]  -- LOGOUT: user:N/A

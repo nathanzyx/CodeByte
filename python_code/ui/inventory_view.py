@@ -805,7 +805,7 @@ class InventoryView(QMainWindow):
         
         # Define validation types for each field
         validation_types = {
-            'id': 'alphanumeric',
+            'id': 'text',
             'name': 'text',
             'brand': 'alphanumeric_space',
             'category': 'alphanumeric_space',

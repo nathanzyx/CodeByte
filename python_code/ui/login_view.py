@@ -199,7 +199,7 @@ class LoginView(QDialog):
         
         
         # Checkbox for "Require Login" checking this will require the user to log in before performing database actions
-        self.require_login_checkbox = QCheckBox("Require Login")
+        self.require_login_checkbox = QCheckBox("Require Login To Use Database")
         self.require_login_checkbox.setFont(QFont("Segoe UI", 11))
         self.require_login_checkbox.setStyleSheet("""
             QCheckBox {
