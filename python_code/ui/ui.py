@@ -14,6 +14,7 @@ from ui.login_view import LoginView
 from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
+from PyQt6.QtWidgets import QPushButton, QMessageBox
 
 from ui.embed_ai import EmbedAI
 from ai.AI import AI 
@@ -767,6 +768,40 @@ class UI:
         main_layout.addWidget(sidebar)
         main_layout.addWidget(self.stacked_widget, 1)  # 1 is stretch factor
 
+        # Check if help button already exists before adding a new one
+        help_button_exists = False
+        for widget in self.root.statusBar().findChildren(QPushButton):
+            if widget.text() == "❓ Help":
+                help_button_exists = True
+                break
+                
+        if not help_button_exists:
+            # Create a help button in the status bar (always visible)
+            self.root.statusBar().setStyleSheet("""
+                QStatusBar {
+                    background-color: #1e1e1e;
+                    color: #E5E7EB;
+                    border-top: 1px solid #374151;
+                }
+            """)
+            
+            help_button = QPushButton("❓ Help")
+            help_button.setFont(QFont("Inter", 9))
+            help_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3B82F6;
+                    color: white;
+                    border-radius: 4px;
+                    padding: 4px 10px;
+                    margin: 2px 5px;
+                }
+                QPushButton:hover {
+                    background-color: #2563EB;
+                }
+            """)
+            help_button.clicked.connect(self.show_help)
+            self.root.statusBar().addPermanentWidget(help_button)
+
         # Show the main window
         self.root.show()
         
@@ -866,4 +901,26 @@ class UI:
             total_value = (items_df['price'] * items_df['quantity']).sum()
             return f"${total_value:,.2f}"
         return "$0.00"
+
+    def show_help(self):
+        """Display help information"""
+        help_dialog = QMessageBox(self.root)
+        help_dialog.setWindowTitle("Help")
+        help_dialog.setIcon(QMessageBox.Icon.Information)
+        help_dialog.setText("Electronics Inventory Management Help")
+        
+        help_text = """
+        <h3>Quick Help Guide:</h3>
+        <ul>
+            <li><b>Dashboard:</b> View inventory statistics</li>
+            <li><b>Inventory:</b> Browse and search all items</li>
+            <li><b>Add Product:</b> Add new items to inventory</li>
+            <li><b>Remove Product:</b> Remove items from inventory</li>
+            <li><b>Manage Fields:</b> Customize database fields</li>
+        </ul>
+        <p>More</p>
+        """
+        
+        help_dialog.setInformativeText(help_text)
+        help_dialog.exec()
 
