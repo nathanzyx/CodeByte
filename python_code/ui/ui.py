@@ -14,6 +14,7 @@ from ui.login_view import LoginView
 from ui.add_item_view import AddItemView
 from ui.remove_item_view import RemoveItemView
 from ui.manage_fields_view import ManageFieldsView
+from ui.activity_view import ActivityView
 from PyQt6.QtWidgets import QPushButton, QMessageBox
 
 from ui.embed_ai import EmbedAI
@@ -348,6 +349,15 @@ class UI:
         self.remove_item_view = RemoveItemView(self.root, self.inventory_system, self.patterns)
         remove_product_layout.addWidget(self.remove_item_view)
         self.stacked_widget.addWidget(self.remove_product_view)
+        
+        # Create the activity view and add it to the stacked widget
+        from ui.activity_view import ActivityView
+        self.activity_view = QWidget()
+        activity_layout = QVBoxLayout(self.activity_view)
+        activity_layout.setContentsMargins(0, 0, 0, 0)
+        self.activity_view_instance = ActivityView(self.root, self.logic, self.inventory_system)
+        activity_layout.addWidget(self.activity_view_instance)
+        self.stacked_widget.addWidget(self.activity_view)
     
     #
     #   This function returns the users login status along with a message if not logged in
@@ -366,6 +376,19 @@ class UI:
         # Refresh the inventory view to show the latest data
         self.inventory_view.display_all_items()
         self.refresh_views()
+        
+    def display_activity(self):
+        if not self.is_authenticated():
+            return
+        # Switch to the activity view in the stacked widget
+        self.stacked_widget.setCurrentWidget(self.activity_view)
+        # Refresh the view to show the latest activity data
+        if hasattr(self, 'activity_view'):
+            # Recreate the activity view to reflect any changes
+            self.stacked_widget.removeWidget(self.activity_view)
+            self.activity_view = ActivityView(self.root, self.logic, self.inventory_system)
+            self.stacked_widget.addWidget(self.activity_view)
+            self.stacked_widget.setCurrentWidget(self.activity_view)
     
     def display_add_item(self):
         if not self.is_authenticated():
@@ -438,11 +461,16 @@ class UI:
         # Remove this method or modify it to avoid adding a layout twice
         # The EmbedAI is already being called in display_menu
         pass
+    
+    def display_clear_database(self):
+        if not self.is_authenticated():
+            return
+        self.inventory_system.clear_database()
         
     def exit_application(self):
         # Perform any actions you want before exiting
         print("Closing App...")
-        self.inventory_system.log_message(f" -- LOGOUT: user:{str(self.crnt_user)}")
+        self.inventory_system.log_message(f" LOGOUT: user:{str(self.crnt_user)}")
 
         # Exit application
         self.app.quit()
@@ -458,8 +486,8 @@ class UI:
         self.root.setWindowTitle(self.inventory_system.name)
         
         # Replace the fixed size with minimum size
-        self.root.setMinimumSize(1200, 780)  # Set minimum size based on the warning message
-        self.root.resize(1200, 780)  # Initial size, but now resizable
+        self.root.setMinimumSize(1200, 800)  # Set minimum size based on the warning message
+        self.root.resize(1200, 800)  # Initial size, but now resizable
         
         # Create central widget
         central_widget = QWidget()
@@ -616,6 +644,9 @@ class UI:
         # Create sidebar item for Remove Product
         remove_product_btn = create_sidebar_item("Remove Product", "➖", self.display_remove_item, is_active=False)
         body_layout.addWidget(remove_product_btn)
+        # Activity
+        display_activity_btn = create_sidebar_item("Activity", "⏱️", self.display_activity, is_active=False)
+        body_layout.addWidget(display_activity_btn)
         
         # Add spacing
         body_layout.addSpacing(16)
@@ -631,7 +662,7 @@ class UI:
         body_layout.addWidget(create_sidebar_item("Manage Fields", "🔧", self.display_options))
         
         # Remove the duplicate Clear Database buttons and use only one Clear All Data button
-        body_layout.addWidget(create_sidebar_item("Clear All Data", "🗑️", self.inventory_system.clear_database))
+        body_layout.addWidget(create_sidebar_item("Clear Database", "🗑️", self.display_clear_database))
         
         body_layout.addStretch()
         
@@ -912,13 +943,15 @@ class UI:
         help_text = """
         <h3>Quick Help Guide:</h3>
         <ul>
-            <li><b>Dashboard:</b> View inventory statistics</li>
-            <li><b>Inventory:</b> Browse and search all items</li>
-            <li><b>Add Product:</b> Add new items to inventory</li>
-            <li><b>Remove Product:</b> Remove items from inventory</li>
-            <li><b>Manage Fields:</b> Customize database fields</li>
+            <li><b>Dashboard:</b> Inventory Statistics and AI Assistant</li>
+            <li><b>Inventory:</b> Browse and Search all Items</li>
+            <li><b>Add Product:</b> Add New Items to Inventory</li>
+            <li><b>Remove Product:</b> Remove Items from the Inventory</li>
+            <li><b>Activity:</b> See the Timeline of Database Operations</li>
+            <li><b>Manage Fields:</b> Customize database Fields</li>
+            <li><b>Clear Database:</b> Erase Inventory and Custom Fields</li>
+            <li><b>Profile (When Logged In):</b> Change Profile/System Options</li>
         </ul>
-        <p>More</p>
         """
         
         help_dialog.setInformativeText(help_text)

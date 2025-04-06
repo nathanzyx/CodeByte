@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-from PyQt6.QtWidgets import QMessageBox, QInputDialog, QWidget
+from PyQt6.QtWidgets import QMessageBox, QInputDialog, QWidget, QLineEdit
 from datetime import datetime
 from ui import *
 import sqlite3
@@ -163,16 +163,26 @@ class DatabaseSystem:
     def account_exists(self):
         try:
             # Query the login table for any non-empty username and password
-            self.cursor.execute(f"SELECT username, password FROM {self.login_table} LIMIT 1")
+            self.cursor.execute(f"SELECT username, password FROM {self.login_table} WHERE username != '' AND password != '' LIMIT 1")
             result = self.cursor.fetchone()
 
-            # Check if username and password are not empty
-            if result and result[0] and result[1]:
-                return True
-            return False
+            # Return True if a valid account exists
+            return bool(result)
         except Exception as e:
             self.log_message(f"Error checking account existence: {str(e)}")
             return False
+        # try:
+        #     # Query the login table for any non-empty username and password
+        #     self.cursor.execute(f"SELECT username, password FROM {self.login_table} LIMIT 1")
+        #     result = self.cursor.fetchone()
+
+        #     # Check if username and password are not empty
+        #     if result and result[0] and result[1]:
+        #         return True
+        #     return False
+        # except Exception as e:
+        #     self.log_message(f"Error checking account existence: {str(e)}")
+        #     return False
     
     #
     #   Modifies account credentials if the old credentials match
@@ -224,7 +234,7 @@ class DatabaseSystem:
             stored_password = result[0]
             if password == stored_password:
                 self.logged_in = True
-                self.log_message(f"Login successful: Username '{username}'.")
+                self.log_message(f"LOGIN: Username '{username}'.")
                 
                 # set database username
                 self.username = username
@@ -592,12 +602,32 @@ class DatabaseSystem:
     #
     def clear_database(self):
         # Show confirmation dialog using PyQt6
+        if self.account_exists():
+            password, ok = QInputDialog.getText(
+                None, "Confirm Password", "Enter your password to clear the database:", QLineEdit.EchoMode.Password
+            )
+            if not ok:
+                # QMessageBox.warning(None, "Cancelled", "Database was not cleared.")
+                return False
+
+            # Verify password
+            if password != self.password:
+                QMessageBox.critical(None, "Authentication Failed", "The password you entered is incorrect.")
+                return False
+
+        # if not ok:
+        #     # QMessageBox.warning(None, "Cancelled", "Database was not cleared.")
+        #     return False
+
+        # # Verify password
+        # if password != self.password:
+        #     QMessageBox.critical(None, "Authentication Failed", "The password you entered is incorrect.")
+        #     return False
+
+        # Show confirmation dialog
         confirm = QMessageBox.question(
-            None, 
-            "Confirm", 
-            "Are you sure you want to clear the database? This will remove ALL items and custom fields. This action cannot be undone.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+            None, "Confirm", "Are you sure you want to clear the database? This action will delete all inventory data and custom fields.",)
+        
         
         if confirm == QMessageBox.StandardButton.Yes:
             try:
@@ -615,7 +645,7 @@ class DatabaseSystem:
                 self.create_images_table()
                 
                 self.conn.commit()
-                QMessageBox.information(None, "Success", "Database cleared successfully. All items and custom fields have been removed.")
+                QMessageBox.information(None, "Success", "Database cleared, all inventory data and custom fields have been deleted.")
                 # LOG MESSAGE
                 self.log_message("Database Cleared! (Items and custom fields)")
                 return True

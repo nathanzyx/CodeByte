@@ -199,7 +199,7 @@ class LoginView(QDialog):
         
         
         # Checkbox for "Require Login" checking this will require the user to log in before performing database actions
-        self.require_login_checkbox = QCheckBox("Require Login To Use Database")
+        self.require_login_checkbox = QCheckBox("Require Login for Database Access")
         self.require_login_checkbox.setFont(QFont("Segoe UI", 11))
         self.require_login_checkbox.setStyleSheet("""
             QCheckBox {
@@ -400,7 +400,7 @@ class LoginView(QDialog):
                 background-color: #1D4ED8;
             }}
         """)
-        login_button.clicked.connect(lambda: self.authenticate_new_credentials("", "", self.new_username.text(), self.new_password.text(), self.require_login_checkbox.isChecked()))
+        login_button.clicked.connect(lambda: self.authenticate_new_credentials(self.new_username.text(), self.new_password.text(), self.require_login_checkbox.isChecked()))
         container_layout.addWidget(login_button)
         
         main_layout.addWidget(main_container)
@@ -417,7 +417,7 @@ class LoginView(QDialog):
         result = self.inventory_system.set_account_credentials(change_username, change_password, requires_login)
         
         if result:
-            QMessageBox.information(self, change_username, "Credentials Updated!")
+            QMessageBox.information(self, change_username, "Changes Saved!")
             self.crnt_user = change_username
             self.accept()
             
