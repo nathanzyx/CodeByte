@@ -547,13 +547,7 @@ class LoginView(QDialog):
         """)
         login_button.clicked.connect(self.authenticate_user)
         container_layout.addWidget(login_button)
-        
-        # Help text
-        # help_text = QLabel("Username is '123', Password is '123'")
-        # help_text.setFont(QFont("Segoe UI", 10))
-        # help_text.setStyleSheet(f"color: {self.colors['text_secondary']};")
-        # help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # container_layout.addWidget(help_text)
+
         
         main_layout.addWidget(main_container)
 

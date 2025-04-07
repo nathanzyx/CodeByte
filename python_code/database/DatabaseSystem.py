@@ -607,7 +607,6 @@ class DatabaseSystem:
                 None, "Confirm Password", "Enter your password to clear the database:", QLineEdit.EchoMode.Password
             )
             if not ok:
-                # QMessageBox.warning(None, "Cancelled", "Database was not cleared.")
                 return False
 
             # Verify password
@@ -615,14 +614,6 @@ class DatabaseSystem:
                 QMessageBox.critical(None, "Authentication Failed", "The password you entered is incorrect.")
                 return False
 
-        # if not ok:
-        #     # QMessageBox.warning(None, "Cancelled", "Database was not cleared.")
-        #     return False
-
-        # # Verify password
-        # if password != self.password:
-        #     QMessageBox.critical(None, "Authentication Failed", "The password you entered is incorrect.")
-        #     return False
 
         # Show confirmation dialog
         confirm = QMessageBox.question(
