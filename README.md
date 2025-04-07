@@ -89,5 +89,11 @@ Running `make test` in the terminal will execute the necessary tests to verify t
 -   Implement product updating functionality.
 -   Implement advanced search and filtering options.
 -   Implement user authentication and basic admin login.
+### Iteration 3  
+-Relevancy System
+-Activity Log
+-AI Feature
+
+
 
 
