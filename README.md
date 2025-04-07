@@ -61,13 +61,6 @@ We focused on establishing the core product data model and implementing fundamen
     make clean
     ```
 
-### Testing
-
-Running `make test` in the terminal will execute the necessary tests to verify the program's functionality and usability:
-    ```bash
-    make test
-    ```
-
 ### Usage
 
 -   **Adding a Product:**
